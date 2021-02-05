@@ -1,0 +1,42 @@
+{
+  "name": "@avensia-oss/garn",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "repository": "https://github.com/avensia-oss/garn",
+  "author": "Anders Ekdahl <anders.ekdahl@avensia.com>",
+  "license": "MIT",
+  "bin": "src/garn-bin.js",
+  "files": [
+    "src/garn-bin.js",
+    "src/garn.lua",
+    "dist/**/*"
+  ],
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc --noEmit false",
+    "clean": "rimraf dist",
+    "prepublishOnly": "yarn clean && yarn build"
+  },
+  "dependencies": {
+    "@types/glob": "^7.1.1",
+    "@types/inquirer": "^6.5.0",
+    "@types/minimist": "^1.2.0",
+    "@types/node": "^13.13.4",
+    "@types/readline-sync": "^1.4.3",
+    "@types/string-similarity": "^3.0.0",
+    "@types/through": "^0.0.30",
+    "chalk": "^4.1.0",
+    "dotenv": "^8.2.0",
+    "glob": "^7.1.6",
+    "inquirer": "^7.1.0",
+    "minimist": "^1.2.5",
+    "readline-sync": "^1.4.10",
+    "rimraf": "^3.0.2",
+    "string-similarity": "^4.0.1",
+    "through": "^2.3.8",
+    "typescript": "^4.1.3"
+  }
+}
