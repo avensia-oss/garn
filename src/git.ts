@@ -43,6 +43,15 @@ export function tag(tag: string, message?: string, cwd?: string) {
   return message ? git(['tag', '-a', tag, '--cleanup=whitespace', '-m', message], cwd) : git(['tag', tag], cwd);
 }
 
+export async function tagExists(tag: string, cwd?: string) {
+  try {
+    await revParse(tag, cwd)
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
 export function deleteTag(tag: string, cwd?: string) {
   return git(['tag', '-d', tag], cwd);
 }
