@@ -8,8 +8,10 @@ import * as log from './logging';
 export let envVariablesFile = path.join(cliArgs.buildsystemPath, '..', '.env');
 
 const packageJson = require(path.join(cliArgs.buildsystemPath, '..', 'package.json'));
+let explicitPathFromPackageJson: string | undefined = undefined;
 if (packageJson.envFile) {
   const envFilePath = path.normalize(path.join(cliArgs.buildsystemPath, '..', packageJson.envFile));
+  explicitPathFromPackageJson = envFilePath;
   if (fs.existsSync(envFilePath)) {
     envVariablesFile = envFilePath;
   }
@@ -23,6 +25,8 @@ while (!fs.existsSync(envVariablesFile) && tries < 10) {
 
 if (fs.existsSync(envVariablesFile)) {
   dotenv.config({ path: envVariablesFile });
+} else if (explicitPathFromPackageJson) {
+  envVariablesFile = explicitPathFromPackageJson;
 }
 
 const variables: { [name: string]: Variable<unknown, unknown> } = {};
