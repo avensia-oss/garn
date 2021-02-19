@@ -53,8 +53,6 @@ async function createReleaseTag(
     packagesToTag = [undefined];
   }
 
-  let shouldContinue = true;
-
   if (packages) {
     const packagesToInclude = await prompt.selectOptions(
       `You are about tag a ${isPrerelease ? 'prerelease' : 'release'}. Which packages do you want to include?`,
@@ -71,12 +69,9 @@ async function createReleaseTag(
       log.log(' - ', chalk.green(pkg));
     }
     log.log('');
-    shouldContinue = packagesToTag.length > 0;
-  } else {
-    shouldContinue = false;
   }
 
-  if (!shouldContinue) {
+  if (packagesToTag.length === 0) {
     log.log('Okay, maybe some other time then');
     return false;
   }
