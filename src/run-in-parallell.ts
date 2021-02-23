@@ -6,10 +6,38 @@ import * as stream from 'stream';
 import * as log from './logging';
 import * as cliArgs from './cli-args';
 
-export default function runInParallell(
-  programs: { program: string; args: string[]; prefix?: string }[],
+export type ParallelProgram = {
+  program: string;
+  args: string[];
+  prefix?: string;
+};
+
+export default async function runInParallel(
+  programs: ParallelProgram[],
   isGarn: boolean = true,
+  maxParallelism = Infinity,
 ) {
+  const batches: Array<Array<ParallelProgram>> = [];
+  let i = 0;
+  let currentBatch: ParallelProgram[] = [];
+  for (const program of programs) {
+    currentBatch.push(program);
+    i++;
+
+    if (i == maxParallelism) {
+      batches.push(currentBatch);
+      currentBatch = [];
+    }
+  }
+
+  let results: unknown[] = [];
+  for (const batch of batches) {
+    results.push(await executePrograms(batch, isGarn));
+  }
+  return maxParallelism === Infinity ? results[0] : results;
+}
+
+function executePrograms(programs: { program: string; args: string[]; prefix?: string }[], isGarn: boolean = true) {
   let anyStreamIsOutputting = false;
   let unpauseStreams: Array<() => void> = [];
   return Promise.all(

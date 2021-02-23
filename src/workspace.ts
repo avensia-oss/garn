@@ -101,7 +101,8 @@ export async function runTask(taskName: string, packageName?: string) {
   log.log("Running task '" + taskName + "' in packages " + packageNames.join(', '));
   log.log('');
 
-  return await runInParallell(programs);
+  const maxParallelism = (await cliArgs.flags.parallel.get()) ? Infinity : 1;
+  return await runInParallell(programs, true, maxParallelism);
 }
 
 export async function runGarnPlugin() {
