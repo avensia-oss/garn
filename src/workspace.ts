@@ -255,7 +255,7 @@ function expandWorkspaces(packageJsonPath: string) {
   const packageJson = JSON.parse(workspace.readFileSync(packageJsonPath).toString());
   if (packageJson.workspaces) {
     const workspaces: WorkspacePackage[] = [];
-    for (const workspace of packageJson.workspaces) {
+    for (const workspace of packageJson.workspaces.packages ?? packageJson.workspaces) {
       const expanded = glob.sync(path.join(workspace, garnExecutable()), { cwd: path.dirname(packageJsonPath) });
       workspaces.push(
         ...expanded.map(e => ({
