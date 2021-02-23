@@ -27,6 +27,7 @@ export default async function runInParallel(
     if (i == maxParallelism) {
       batches.push(currentBatch);
       currentBatch = [];
+      i = 0;
     }
   }
 
