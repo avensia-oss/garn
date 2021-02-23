@@ -26,7 +26,19 @@ export type Flags = { [name: string]: Flag<any, any> } & {
   noPrompt: Flag<boolean>;
   logLevel: Flag<log.LogLevel>;
   version: Flag<string, undefined>;
+  /**
+   * The asap flag is an optional hint from the person or process executing garn that she or he is willing to accept
+   * trade-offs for speed. If you're writing a task that could be quicker you should check the value of this flag.
+   * An example is if you have a task that starts by verifying something that seldom changes and needs to be verified
+   * you should consider skipping that step if the asap flag is set.
+   */
   asap: Flag<boolean>;
+  /**
+   * The parallel flag is an optional hint from the person or process executing garn that she or he wants to run
+   * things as much in parallel as possible. If you're writing a task that can execute in multiple processes you
+   * should consider doing so if this flag is set.
+   */
+  parallel: Flag<boolean>;
 };
 
 export const flags: Flags = {
@@ -38,6 +50,7 @@ export const flags: Flags = {
   logLevel: registerFlag<log.LogLevel>('log-level', 'string', 'log', ['verbose', 'info', 'log', 'warn', 'error']),
   version: registerFlag<string, undefined>('version', 'string', undefined),
   asap: registerFlag<boolean>('asap', 'boolean', false),
+  parallel: registerFlag<boolean>('parallel', 'boolean', false),
 };
 
 export function registerFlag<TValue, TDefaultValue = TValue>(
