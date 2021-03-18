@@ -169,10 +169,13 @@ async function createReleaseTag(
 
     let gitTag = version.formatGitTag(packageName, newVersion, prereleaseNumber, prereleaseTag);
     while (await git.tagExists(gitTag)) {
-      log.log(`The tag ${gitTag} already exists but on a different line than you're on. It was most likely created in a different branch.`);
-      gitTag = await prompt.question('Enter a version of your choosing (format: x.y.z)', {
+      log.log(
+        `The tag ${gitTag} already exists but on a different line than you're on. It was most likely created in a different branch.`,
+      );
+      const manualVersion = await prompt.question('Enter a version of your choosing (format: x.y.z)', {
         pattern: /[0-9]+\.[0-9]+\.[0-9]+/,
       });
+      gitTag = version.formatGitTag(packageName, manualVersion, prereleaseNumber, prereleaseTag);
     }
 
     await git.tag(gitTag);
