@@ -29,6 +29,7 @@ export * as docker from './docker';
 export * as exec from './exec';
 export * as dotnet from './dotnet';
 export * as yarn from './yarn';
+export * as git from './git';
 export * as typescript from './typescript';
 
 const flags = cliArgs.flags;
