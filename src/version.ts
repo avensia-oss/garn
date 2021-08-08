@@ -197,7 +197,7 @@ export function formatPrerelease(prereleaseTag: string, prereleaseNumber: number
     return '0'.repeat(length - s.length) + num;
   }
 
-  return `${prereleaseTag ?? 'unknown'}${zeroPad(prereleaseNumber, 4)}`;
+  return `-${prereleaseTag ?? 'unknown'}${zeroPad(prereleaseNumber, 4)}`;
 }
 
 export function highest(va: Version, vb: Version) {
