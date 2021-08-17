@@ -210,10 +210,10 @@ async function verbosityArg() {
 }
 
 async function configurationArg() {
-  return ['--configuration', await configration()];
+  return ['--configuration', await configuration()];
 }
 
-async function configration() {
+async function configuration() {
   return (await flags.mode.get()) === 'production' ? 'Release' : 'Debug';
 }
 
