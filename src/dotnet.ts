@@ -2,7 +2,7 @@ import * as path from 'path';
 import { projectPath } from './index';
 import { spawn } from './exec';
 import { flags } from './cli-args';
-import { currentVersion, formatVersion } from './version';
+import { currentVersion } from './version';
 
 export type DotNetOptions = {
   cwd?: string;
@@ -12,6 +12,16 @@ export type DotNetOptions = {
 
 export type DotNetLaunchOptions = DotNetOptions & {
   launchProfile: string;
+};
+
+export type DotNetPackOptions = DotNetOptions & {
+  force?: boolean;
+  excludeSymbols?: boolean;
+  excludeSource?: boolean;
+  output?: string;
+  runtime?: string;
+  serviceable?: boolean;
+  versionSuffix?: string;
 };
 
 export async function listProjects(sln?: string) {
@@ -49,7 +59,11 @@ export async function clean(entry?: string, options?: DotNetOptions) {
 }
 
 export async function test(entry?: string, options?: DotNetOptions) {
-  return await spawnDotnet(withEntry(entry, ['test']), [], options);
+  const args = ['test'];
+  if (entry) {
+    args.push(entry);
+  }
+  return await spawnDotnet(args, [], options);
 }
 
 export async function restore(entry?: string, options?: DotNetOptions) {
@@ -86,6 +100,52 @@ export async function publish(entry: string, options: DotNetOptions & { outputPa
     args.push('--runtime', options.runtime);
   }
   return await spawnDotnet(args, [], options);
+}
+
+export async function pack(projectPath: string, options?: DotNetPackOptions) {
+  const args = ['pack', projectPath];
+
+  // Opt-out
+  if (!options?.excludeSymbols) {
+    args.push('--include-symbols');
+  }
+
+  if (!options?.excludeSource) {
+    args.push('--include-source');
+  }
+
+  // Opt-in
+  if (options?.force) {
+    args.push('--force');
+  }
+
+  if (options?.runtime) {
+    args.push('--runtime', options.runtime);
+  }
+
+  if (options?.output) {
+    args.push('--output', options.output);
+  }
+
+  if (options?.serviceable) {
+    args.push('--serviceable');
+  }
+
+  if (options?.versionSuffix) {
+    args.push('--version-suffix', options.versionSuffix);
+  }
+
+  return await spawnDotnet(args, [], options);
+}
+
+export async function nugetPush(binPath: string, options?: { noSymbols?: boolean }) {
+  const args = ['nuget', 'push', path.join(binPath, await configration(), '*.nupkg')];
+
+  if (options?.noSymbols) {
+    args.push('--no-symbols');
+  }
+
+  return await spawnDotnet(args, []);
 }
 
 export async function solutionPath() {
@@ -150,7 +210,11 @@ async function verbosityArg() {
 }
 
 async function configurationArg() {
-  return ['--configuration', (await flags.mode.get()) === 'production' ? 'Release' : 'Debug'];
+  return ['--configuration', await configuration()];
+}
+
+async function configuration() {
+  return (await flags.mode.get()) === 'production' ? 'Release' : 'Debug';
 }
 
 async function versionArg() {
