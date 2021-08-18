@@ -145,7 +145,7 @@ export async function nugetPush(binPath: string, options?: { noSymbols?: boolean
     args.push('--no-symbols');
   }
 
-  return await spawnDotnet(args, []);
+  return await spawn('dotnet', args);
 }
 
 export async function solutionPath() {
