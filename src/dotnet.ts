@@ -139,7 +139,7 @@ export async function pack(projectPath: string, options?: DotNetPackOptions) {
 }
 
 export async function nugetPush(binPath: string, options?: { noSymbols?: boolean }) {
-  const args = ['nuget', 'push', path.join(binPath, await configration(), '*.nupkg')];
+  const args = ['nuget', 'push', path.join(binPath, await configuration(), '*.nupkg')];
 
   if (options?.noSymbols) {
     args.push('--no-symbols');
