@@ -26,8 +26,8 @@ export type DotNetPackOptions = DotNetOptions & {
 
 export type DotNetPushOptions = {
   apiKey?: string;
-  noSymbols?: boolean;
   source?: string;
+  noSymbols?: boolean;
   skipDuplicate?: boolean;
   symbolSource?: string;
   symbolApiKey?: string;
@@ -178,6 +178,8 @@ export async function nugetPush(binPath: string, options?: DotNetPushOptions) {
     args.push('--symbol-api-key', options.symbolApiKey);
   }
 
+  console.log('SOURCE URL ' + options?.source);
+  console.log('SYMBOL URL ' + options?.symbolSource);
   return await spawn('dotnet', args);
 }
 
