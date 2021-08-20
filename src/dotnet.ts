@@ -24,6 +24,15 @@ export type DotNetPackOptions = DotNetOptions & {
   versionSuffix?: string;
 };
 
+export type DotNetPushOptions = {
+  apiKey?: string;
+  noSymbols?: boolean;
+  source?: string;
+  skipDuplicate?: boolean;
+  symbolSource?: string;
+  symbolApiKey?: string;
+};
+
 export async function listProjects(sln?: string) {
   const slnPath = sln ?? (await solutionPath());
   if (!slnPath) {
@@ -138,11 +147,35 @@ export async function pack(projectPath: string, options?: DotNetPackOptions) {
   return await spawnDotnet(args, [], options);
 }
 
-export async function nugetPush(binPath: string, options?: { noSymbols?: boolean }) {
+export async function nugetPush(binPath: string, options?: DotNetPushOptions) {
   const args = ['nuget', 'push', path.join(binPath, await configuration(), '*.nupkg')];
+
+  if (options?.apiKey) {
+    args.push('--api-key', options.apiKey);
+  }
+
+  if (options?.source) {
+    args.push('--source', options.source);
+  }
+
+  if (options?.skipDuplicate) {
+    args.push('--skip-duplicate');
+  }
 
   if (options?.noSymbols) {
     args.push('--no-symbols');
+  }
+
+  if (options?.noSymbols) {
+    args.push('--no-symbols');
+  }
+
+  if (options?.symbolSource) {
+    args.push('--symbol-source', options.symbolSource);
+  }
+
+  if (options?.symbolApiKey) {
+    args.push('--symbol-api-key', options.symbolApiKey);
   }
 
   return await spawn('dotnet', args);
