@@ -14,6 +14,10 @@ export type DotNetLaunchOptions = DotNetOptions & {
   launchProfile: string;
 };
 
+export type DotNetTestOptions = DotNetOptions & {
+  filter?: string;
+};
+
 export type DotNetPackOptions = DotNetOptions & {
   force?: boolean;
   excludeSymbols?: boolean;
@@ -67,11 +71,16 @@ export async function clean(entry?: string, options?: DotNetOptions) {
   return await spawnDotnet(withEntry(entry, ['clean']), [], options);
 }
 
-export async function test(entry?: string, options?: DotNetOptions) {
+export async function test(entry?: string, options?: DotNetTestOptions) {
   const args = ['test'];
   if (entry) {
     args.push(entry);
   }
+
+  if (options?.filter) {
+    args.push('--filter', options.filter);
+  }
+
   return await spawnDotnet(args, [], options);
 }
 
@@ -147,8 +156,8 @@ export async function pack(projectPath: string, options?: DotNetPackOptions) {
   return await spawnDotnet(args, [], options);
 }
 
-export async function nugetPush(binPath: string, options?: DotNetPushOptions) {
-  const args = ['nuget', 'push', path.join(binPath, await configuration(), '*.nupkg')];
+export async function nugetPush(binPath: string, packageName: string, options?: DotNetPushOptions) {
+  const args = ['nuget', 'push', path.join(binPath, await configuration(), packageName)];
 
   if (options?.apiKey) {
     args.push('--api-key', options.apiKey);
@@ -178,8 +187,6 @@ export async function nugetPush(binPath: string, options?: DotNetPushOptions) {
     args.push('--symbol-api-key', options.symbolApiKey);
   }
 
-  console.log('SOURCE URL ' + options?.source);
-  console.log('SYMBOL URL ' + options?.symbolSource);
   return await spawn('dotnet', args);
 }
 
