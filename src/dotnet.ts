@@ -4,6 +4,11 @@ import { spawn } from './exec';
 import { flags } from './cli-args';
 import { currentVersion } from './version';
 
+export type PackageDetails = {
+  name: string;
+  version: string;
+};
+
 export type DotNetOptions = {
   cwd?: string;
   noBuild?: boolean;
@@ -58,6 +63,66 @@ export async function listProjects(sln?: string) {
     }
   }
   return projects;
+}
+
+export async function addSolutionProjects(slnPath: string, projectPaths: string[]) {
+  const result = await spawn('dotnet', ['sln', slnPath, 'add', ...projectPaths], { stdio: 'pipe' });
+  return result.stdout;
+}
+
+export async function removeSolutionProjects(slnPath: string, projectPaths: string[]) {
+  const result = await spawn('dotnet', ['sln', slnPath, 'remove', ...projectPaths], { stdio: 'pipe' });
+  return result.stdout;
+}
+
+export async function listProjectReferences(csprojPath: string) {
+  const result = await spawn('dotnet', ['list', csprojPath, 'reference'], { stdio: 'pipe' });
+  const lines = result.stdout
+    .trim()
+    .split('\n')
+    .map(s => s.trim());
+
+  const projectRefs: string[] = [];
+  for (const line of lines) {
+    projectRefs.push(line);
+  }
+  return projectRefs;
+}
+
+export async function addProjectReferences(csprojPath: string, projectPaths: string[]) {
+  const result = await spawn('dotnet', ['add', csprojPath, 'reference', ...projectPaths], { stdio: 'pipe' });
+  return result.stdout;
+}
+
+export async function removeProjectReferences(csprojPath: string, projectPaths: string[]) {
+  const result = await spawn('dotnet', ['remove', csprojPath, 'reference', ...projectPaths], { stdio: 'pipe' });
+  return result.stdout;
+}
+
+export async function listProjectPackages(csprojPath: string) {
+  const result = await spawn('dotnet', ['list', csprojPath, 'package'], { stdio: 'pipe' });
+  const lines = result.stdout
+    .trim()
+    .split('\n')
+    .map(s => s.trim());
+
+  const projectRefs: PackageDetails[] = [];
+  for (const line of lines) {
+    var values = line.split(' ');
+    var packageDetails: PackageDetails = { name: values[1], version: values[values.length] };
+    if (line.startsWith('>')) projectRefs.push(packageDetails);
+  }
+  return projectRefs;
+}
+
+export async function addPackage(csprojPath: string, projectPaths: string[]) {
+  const result = await spawn('dotnet', ['add', csprojPath, 'package', ...projectPaths], { stdio: 'pipe' });
+  return result.stdout;
+}
+
+export async function removePackage(csprojPath: string, projectPaths: string[]) {
+  const result = await spawn('dotnet', ['remove', csprojPath, 'package', ...projectPaths], { stdio: 'pipe' });
+  return result.stdout;
 }
 
 export async function run(project: string, appArgs: string[], options: DotNetLaunchOptions) {
@@ -175,10 +240,6 @@ export async function nugetPush(binPath: string, packageName: string, options?: 
     args.push('--no-symbols');
   }
 
-  if (options?.noSymbols) {
-    args.push('--no-symbols');
-  }
-
   if (options?.symbolSource) {
     args.push('--symbol-source', options.symbolSource);
   }
@@ -190,13 +251,14 @@ export async function nugetPush(binPath: string, packageName: string, options?: 
   return await spawn('dotnet', args);
 }
 
-export async function solutionPath() {
+export async function solutionPath(targetPath?: string) {
   const glob = await import('glob');
-  const result = glob.sync('*.sln', { cwd: projectPath });
+  const projPath = targetPath ?? projectPath;
+  const result = glob.sync('*.sln', { cwd: projPath });
   if (!result[0]) {
     return undefined;
   }
-  return path.join(projectPath, result[0]);
+  return path.join(projPath, result[0]);
 }
 
 function withEntry(entry: string | undefined, args: string[]) {
