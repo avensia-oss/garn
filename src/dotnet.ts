@@ -37,6 +37,7 @@ export type DotNetPushOptions = {
   apiKey?: string;
   source?: string;
   noSymbols?: boolean;
+  noSymbolsValue?: string; // temp workaround https://github.com/NuGet/Home/issues/4864
   skipDuplicate?: boolean;
   symbolSource?: string;
   symbolApiKey?: string;
@@ -237,7 +238,12 @@ export async function nugetPush(binPath: string, packageName: string, options?: 
   }
 
   if (options?.noSymbols) {
-    args.push('--no-symbols');
+    // temp workaround https://github.com/NuGet/Home/issues/4864
+    if (options?.noSymbolsValue) {
+      args.push('--no-symbols', options?.noSymbolsValue);
+    } else {
+      args.push('--no-symbols');
+    }
   }
 
   if (options?.symbolSource) {

@@ -235,7 +235,7 @@ function callTask(
   onErrors: OnTaskError[],
   onDones: OnTaskDone[],
 ) {
-  if (taskResults[taskDescriptor.fullName]) {
+  if (!!taskResults[taskDescriptor.fullName]) {
     return taskResults[taskDescriptor.fullName];
   }
   taskResults[taskDescriptor.fullName] = Promise.resolve()
@@ -541,7 +541,7 @@ export async function run() {
   } catch (err) {
     await log.error(validatedTaskName, 'failed');
     await log.verbose('Err:', err);
-    return await processExitOnError(err);
+    return await processExitOnError(err as Error);
   }
 
   const startTime = new Date().valueOf();
@@ -567,7 +567,7 @@ export async function run() {
     await callBuildProgressListeners(allTaskDescriptors, onDones, taskDescriptors);
     await log.error(failedTaskDescriptor.fullName, 'failed');
     await log.error(err);
-    return processExitOnError(err);
+    return processExitOnError(err as Error);
   }
 }
 
