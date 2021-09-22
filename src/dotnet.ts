@@ -334,10 +334,11 @@ async function versionArg() {
     const major = version.version.split('.')[0];
     let versionString = version.version;
     if (version.prerelease) {
-      versionString += '.' + version.prerelease.number;
+      versionString += '-' + version.prerelease.tag + '.' + version.prerelease.number;
     } else {
       versionString += '.0'; // Important for the version to always have the format X.X.X.X
     }
+
     args.push(`-p:Version=${versionString}`);
     args.push(`-p:SourceRevisionId=${version.sha1}`);
   }
