@@ -23,18 +23,13 @@ export type Prerelease = {
 };
 
 /**
- * Returns a string with format X.Y.Z.W where W is 0 if the current commit
- * has a version tag that is not a pre-release.
- * If the current commit has a pre-release, W will be the pre-release number.
- * If the current commit doesn't have a version tag, W will be the number
- * of commits since the last tag.
+ * Returns a string with format X.Y.Z(W) (semver 2.0 https://semver.org/spec/v2.0.0.html)
+ * If the current commit has a pre-release, W will be the '-tagname.pre-release-number'.
  */
 export function formatVersion(version: Version) {
   let versionString = version.version;
   if (version.prerelease) {
-    versionString += `.${version.prerelease.number}`;
-  } else {
-    versionString += `.0`;
+    versionString += `-${version.prerelease.tag}.${version.prerelease.number}`;
   }
   return versionString;
 }
@@ -192,12 +187,8 @@ export function formatGitTag(
 }
 
 export function formatPrerelease(prereleaseTag: string, prereleaseNumber: number) {
-  function zeroPad(num: number, length: number) {
-    const s = num.toString();
-    return '0'.repeat(length - s.length) + num;
-  }
-
-  return `-${prereleaseTag ?? 'unknown'}${zeroPad(prereleaseNumber, 4)}`;
+  // maintain a consistent pre-release tag and package version for Semantic Versioning v2.0.0
+  return `-${prereleaseTag ?? 'unknown'}.${prereleaseNumber}`;
 }
 
 export function highest(va: Version, vb: Version) {
