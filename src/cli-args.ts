@@ -39,6 +39,9 @@ export type Flags = { [name: string]: Flag<any, any> } & {
    * should consider doing so if this flag is set.
    */
   parallel: Flag<boolean>;
+  /** Indicates the the command was executed from a ci/cd pipline
+   * which can be used to add specific behavious to the build and pack commands**/
+  buildServer: Flag<boolean>;
 };
 
 export const flags: Flags = {
@@ -47,6 +50,7 @@ export const flags: Flags = {
     'development',
   ]),
   noPrompt: registerFlag<boolean>('no-prompt', 'boolean', () => !!process.env['TEAMCITY_VERSION']), // TODO: Detect other build servers as well
+  buildServer: registerFlag<boolean>('build-server', 'boolean', () => !!process.env['TEAMCITY_VERSION']), // TODO: Detect other build servers as well
   logLevel: registerFlag<log.LogLevel>('log-level', 'string', 'log', ['verbose', 'info', 'log', 'warn', 'error']),
   version: registerFlag<string, undefined>('version', 'string', undefined),
   asap: registerFlag<boolean>('asap', 'boolean', false),

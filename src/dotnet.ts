@@ -290,7 +290,12 @@ async function spawnDotnet(args: string[], appArgs: string[] = [], options?: Dot
 }
 
 async function baseArgs() {
-  const args = [...(await verbosityArg()), ...(await configurationArg()), ...(await versionArg())];
+  const args = [
+    ...(await verbosityArg()),
+    ...(await configurationArg()),
+    ...(await versionArg()),
+    ...(await deterministicBuildArg()),
+  ];
   return args;
 }
 
@@ -323,6 +328,14 @@ async function configurationArg() {
   return ['--configuration', await configuration()];
 }
 
+async function deterministicBuildArg() {
+  if ((await flags.mode.get()) === 'production' && (await flags.buildServer.get())) {
+    return ['-p:ContinuousIntegrationBuild=true'];
+  } else {
+    return [];
+  }
+}
+
 async function configuration() {
   return (await flags.mode.get()) === 'production' ? 'Release' : 'Debug';
 }
@@ -342,5 +355,6 @@ async function versionArg() {
     args.push(`-p:Version=${versionString}`);
     args.push(`-p:SourceRevisionId=${version.sha1}`);
   }
+
   return args;
 }
