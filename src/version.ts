@@ -23,6 +23,15 @@ export type Prerelease = {
 };
 
 /**
+ * Matches:
+ * package@1.2.3
+ * package_name@1.2.999-rc.1
+ * @avensia-package@2.2.3
+ * With support for named groups
+ */
+const gitTagRegex: RegExp = /^(?<name>@?[a-zA-Z0-9_-]+)@(?<version>(?<versionCore>[0-9]+\.[0-9]+\.[0-9])+(\-(?<preRelease>[a-zA-Z0-9\.]+))?)$/;
+
+/**
  * Returns a string with format X.Y.Z(W) (semver 2.0 https://semver.org/spec/v2.0.0.html)
  * If the current commit has a pre-release, W will be the '-tagname.pre-release-number'.
  */
@@ -124,20 +133,18 @@ export function isVersionTag(s: string | null | undefined): s is string {
   if (!s) {
     return false;
   }
-  return (
-    /^[a-zA-Z0-9_-]+@[0-9]+\.[0-9]+\.[0-9]+(\-[a-zA-Z0-9\.]+)?$/.test(s) ||
-    /^v[0-9]+\.[0-9]+\.[0-9]+(\-[a-zA-Z0-9\.]+)?$/.test(s)
-  );
+  return gitTagRegex.test(s) || /^v[0-9]+\.[0-9]+\.[0-9]+(\-[a-zA-Z0-9\.]+)?$/.test(s);
 }
 
 export async function fromTag(gitTag: string): Promise<Version> {
   if (!isVersionTag(gitTag)) {
     throw new Error(`The tag '${gitTag}' is not a valid version tag`);
   }
-  const packageParts = gitTag.split('@');
-  const packageName = packageParts.length === 2 ? packageParts[0] : undefined;
-  const version = gitTag.match(/[0-9]+\.[0-9]+\.[0-9]+/)![0];
 
+  const packageName = gitTagRegex.exec(gitTag)?.groups?.name;
+  const version = gitTagRegex.exec(gitTag)?.groups?.versionCore!;
+
+  // This seems wrong. Should it really be .split here? > "package@1.2.3-rc.1".split(/-([a-zA-Z]+)([0-9]+)$/) => ['package@1.2.3-rc.1']
   const prereleaseParts = gitTag.split(/-([a-zA-Z]+)([0-9]+)$/);
   const prerelease: Prerelease | undefined =
     prereleaseParts.length === 4 ? { tag: prereleaseParts[1], number: Number(prereleaseParts[2]) } : undefined;

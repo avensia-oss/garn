@@ -129,6 +129,7 @@ async function createReleaseTag(
     const skippedPrereleases: version.Version[] = [];
     let latestVersion: version.Version | undefined = undefined;
     const packageVersion = await version.latestVersion(!isPrerelease, packageName, skippedPrereleases);
+
     if (!latestVersion || version.highest(packageVersion, latestVersion) === packageVersion) {
       latestVersion = packageVersion;
     }
