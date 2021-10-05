@@ -144,8 +144,7 @@ export async function fromTag(gitTag: string): Promise<Version> {
   const packageName = gitTagRegex.exec(gitTag)?.groups?.name;
   const version = gitTagRegex.exec(gitTag)?.groups?.versionCore!;
 
-  // This seems wrong. Should it really be .split here? > "package@1.2.3-rc.1".split(/-([a-zA-Z]+)([0-9]+)$/) => ['package@1.2.3-rc.1']
-  const prereleaseParts = gitTag.split(/-([a-zA-Z]+)([0-9]+)$/);
+  const prereleaseParts = gitTag.split(/-([a-zA-Z]+)\.([0-9]+)$/);
   const prerelease: Prerelease | undefined =
     prereleaseParts.length === 4 ? { tag: prereleaseParts[1], number: Number(prereleaseParts[2]) } : undefined;
 
