@@ -3,9 +3,21 @@ import * as childProcess from 'child_process';
 import * as path from 'path';
 import { projectPath } from './index';
 import * as exec from './exec';
+import { currentVersion } from './version';
+import * as workspace from './workspace';
 
 export async function runScript(script: string, args: string[] = []) {
   return runYarn(['run', script, ...args]);
+}
+
+export async function publishPackage() {
+  const packageName = workspace.current()?.name;
+  const { version } = await currentVersion();
+  return runYarn(['publish', projectPath, '--new-version', version, '--no-git-tag-version']);
+}
+
+export function yarnInfo() {
+  return runYarn(['config', 'list']);
 }
 
 export async function runBin(bin: string, args: string[] = []) {

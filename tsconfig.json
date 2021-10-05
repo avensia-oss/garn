@@ -16,5 +16,11 @@
     "sourceMap": true,
     "noEmit": true
   },
+  "watchOptions": {
+    "excludeDirectories": [
+      "**/node_modules",
+      "dist"
+    ]
+  },
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

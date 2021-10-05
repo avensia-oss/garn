@@ -131,6 +131,7 @@ export async function runGarnPlugin() {
     const taskName = cliArgs.argv._[2] || 'default';
 
     const pkg = packages.find(p => p.name === packageName);
+
     if (!pkg) {
       await log.error(
         `No package with the name '${packageName}' could be found in this workspace. Existing packages are: ${packages
