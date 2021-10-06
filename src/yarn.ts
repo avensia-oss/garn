@@ -11,9 +11,17 @@ export async function runScript(script: string, args: string[] = []) {
 }
 
 export async function publishPackage() {
-  const packageName = workspace.current()?.name;
-  const { version } = await currentVersion();
+  const version = await versionArg();
   return runYarn(['publish', projectPath, '--new-version', version, '--no-git-tag-version']);
+}
+
+async function versionArg() {
+  const version = await currentVersion();
+  let versionString = version.version;
+  if (version.prerelease) {
+    versionString += '-' + version.prerelease.tag + '.' + version.prerelease.number;
+  }
+  return versionString;
 }
 
 export function yarnInfo() {
