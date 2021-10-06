@@ -10,8 +10,8 @@ export async function runScript(script: string, args: string[] = []) {
   return runYarn(['run', script, ...args]);
 }
 
-export async function publishPackage(packageName?: string) {
-  const packagePath = packageName ? path.join(projectPath, 'src', packageName) : projectPath;
+export async function publishPackage(packageFolderName?: string) {
+  const packagePath = packageFolderName ? path.join(projectPath, 'src', packageFolderName) : projectPath;
   const version = await versionArg();
   return runYarn(['publish', packagePath, '--new-version', version, '--no-git-tag-version']);
 }
