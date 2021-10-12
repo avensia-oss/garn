@@ -29,7 +29,7 @@ export type Prerelease = {
  * @avensia-package@2.2.3
  * With support for named groups
  */
-const gitTagRegex: RegExp = /^(?<name>@?[a-zA-Z0-9_-]+)@(?<version>(?<versionCore>[0-9]+\.[0-9]+\.[0-9])+(\-(?<preRelease>[a-zA-Z0-9\.]+))?)$/;
+const gitTagRegex: RegExp = /^(?<name>@?[a-zA-Z0-9_-]+)@(?<version>(?<versionCore>[0-9]+\.[0-9]+\.[0-9]+)(\-(?<preRelease>[a-zA-Z0-9\.]+))?)$/;
 
 /**
  * Returns a string with format X.Y.Z(W) (semver 2.0 https://semver.org/spec/v2.0.0.html)
