@@ -30,7 +30,8 @@ export function yarnInfo() {
 }
 
 export async function runBin(bin: string, args: string[] = []) {
-  const executablePath = (await runYarn(['bin', bin], { stdio: 'pipe' })).stdout.trim();
+  const yarnBinOutput = (await runYarn(['bin', bin], { stdio: 'pipe' })).stdout.trim();
+  const executablePath = yarnBinOutput.split('\n').pop()!;
   const executable = os.platform() === 'win32' ? executablePath + '.cmd' : executablePath;
   return await exec.spawn(executable, args, {
     cwd: projectPath,
