@@ -300,12 +300,22 @@ function createPathRewriteTransformer(program, paths) {
   return context => sourceFile => {
     const typeChecker = program.getTypeChecker();
 
+    /**
+     * 
+     * @param {ts.Node} node 
+     * @returns 
+     * Handles `import('...')` and `require('...')` statements.
+     */
     const visitNode = node => {
       if (
         ts.isCallExpression(node) &&
-        node.expression.kind === ts.SyntaxKind.ImportKeyword &&
         node.arguments.length === 1 &&
-        ts.isStringLiteral(node.arguments[0])
+        ts.isStringLiteral(node.arguments[0]) && (
+          node.expression.kind === ts.SyntaxKind.ImportKeyword || ( // import
+            ts.isIdentifier(node.expression) &&
+            node.expression.originalKeywordKind === ts.SyntaxKind.RequireKeyword // require
+          )
+        )
       ) {
         const importPath = node.arguments[0];
         const importSymbol = typeChecker.getSymbolAtLocation(importPath);
