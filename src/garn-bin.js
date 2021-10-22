@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 const fs = require('fs');
 const path = require('path');
 const minimist = require('minimist');
@@ -234,10 +235,21 @@ function anyFileInManifestHasChanged() {
   return false;
 }
 
+/**
+ *
+ * @param {ts.Program} program 
+ * @param {string[]} paths 
+ * @returns 
+ */
 function createPathRewriteTransformer(program, paths) {
   const ts = require('typescript');
 
   const rewrittenPaths = paths.map(path => new RegExp('^' + escapeRegExp(path).replace('\\*', '.')));
+  /**
+   * 
+   * @param {string} modulePath 
+   * @returns boolean
+   */
   function isRewrittenPath(modulePath) {
     for (const rewrittenPath of rewrittenPaths) {
       if (rewrittenPath.test(modulePath)) {
@@ -255,11 +267,13 @@ function createPathRewriteTransformer(program, paths) {
     if (importName.startsWith('.')) {
       return false;
     }
+
     const parts = importName.split('/');
     let mainName = parts[0];
     if (mainName.startsWith('@')) {
       mainName += '/' + parts[1];
     }
+    
     let currentFilePackageFolder = path.dirname(currentFile);
 
     let tries = 0;
@@ -330,6 +344,9 @@ function createPathRewriteTransformer(program, paths) {
         }
       }
 
+      /**
+       * Handles `require.resolve('...')` statements
+       */
       if (
         ts.isCallExpression(node) &&
         node.arguments.length === 1 &&
@@ -350,6 +367,9 @@ function createPathRewriteTransformer(program, paths) {
         }
       }
 
+      /**
+       * handles `import {...} from '...'` and `import * as ... from '...'`
+       */
       if (
         ts.isImportDeclaration(node) &&
         (!node.importClause || !node.importClause.isTypeOnly) &&
@@ -406,6 +426,7 @@ function createPathRewriteTransformer(program, paths) {
         isRewrittenPath(node.moduleSpecifier.text)
       ) {
         const importSymbol = typeChecker.getSymbolAtLocation(node.moduleSpecifier);
+        
         if (
           importSymbol &&
           ts.isSourceFile(importSymbol.valueDeclaration) &&
@@ -436,6 +457,7 @@ function createPathRewriteTransformer(program, paths) {
           );
         }
       }
+
       return node;
     };
 
@@ -466,10 +488,10 @@ function nodePathsTransformer(ts, program) {
   return context => file => visitSourceFile(ts, file, program, context);
 }
 
-function visitSourceFile(ts, sourceFile, program, context, options) {
+function visitSourceFile(ts, sourceFile, program, context) {
   const transformedSourceFile = ts.visitEachChild(
-    visitNode(ts, sourceFile, sourceFile, program, context, options),
-    childNode => visitNodeAndChildren(ts, childNode, sourceFile, program, context, options),
+    visitNode(ts, sourceFile),
+    childNode => visitNodeAndChildren(ts, childNode, sourceFile, program, context),
     context,
   );
   return transformedSourceFile;

@@ -14,13 +14,8 @@
     "lib": ["es2018", "dom", "dom.iterable"],
     "skipLibCheck": true,
     "sourceMap": true,
-    "noEmit": true
-  },
-  "watchOptions": {
-    "excludeDirectories": [
-      "**/node_modules",
-      "dist"
-    ]
+    "noEmit": true,
+    "checkJs": true,
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }
