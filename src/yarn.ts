@@ -12,17 +12,27 @@ export async function runScript(script: string, args: string[] = []) {
 
 export async function publishPackage(packageFolderName?: string) {
   const packagePath = packageFolderName ? path.join(projectPath, 'src', packageFolderName) : projectPath;
-  const version = await versionArg();
-  return runYarn(['publish', packagePath, '--new-version', version, '--no-git-tag-version']);
+  const [versionString, isPrerelease] = await versionArg();
+  return runYarn([
+    'publish',
+    packagePath,
+    '--new-version',
+    versionString,
+    '--no-git-tag-version',
+    '--tag',
+    isPrerelease ? 'rc' : 'latest',
+  ]);
 }
 
-async function versionArg() {
+async function versionArg(): Promise<[string, boolean]> {
   const version = await currentVersion();
   let versionString = version.version;
+
   if (version.prerelease) {
     versionString += '-' + version.prerelease.tag + '.' + version.prerelease.number;
   }
-  return versionString;
+
+  return [versionString, !!version.prerelease];
 }
 
 export function yarnInfo() {
