@@ -1,3 +1,5 @@
+import { format } from 'path';
+import { version } from 'typescript';
 import { spawn } from './exec';
 import { projectPath } from './index';
 import * as log from './logging';
@@ -39,15 +41,40 @@ export async function getTags(name: string = 'HEAD', cwd?: string) {
   return tags.split('\n').map(s => s.trim());
 }
 
+export async function logChanges(
+  from: string,
+  to: string,
+  path: string = '',
+  pretty: boolean = false,
+  prettyFormat: string = "format:'%h -%d %s (%cr) <%an>'",
+  cwd?: string,
+) {
+  let args = ['log'];
+
+  if (pretty) {
+    args.push('--pretty=', prettyFormat);
+  }
+
+  args.push(from, '..', to, path);
+
+  const commits = await git(args, cwd);
+  return commits.split('\n').map(s => s.trim());
+}
+
+export async function tagList(name: string, limit: number = 1, cwd?: string) {
+  const tags = await git(['tag', '-l', name, '--sort=-version:refname | head -n', limit.toString()], cwd);
+  return tags.split('\n').map(s => s.trim());
+}
+
 export function tag(tag: string, message?: string, cwd?: string) {
   return message ? git(['tag', '-a', tag, '--cleanup=whitespace', '-m', message], cwd) : git(['tag', tag], cwd);
 }
 
 export async function tagExists(tag: string, cwd?: string) {
   try {
-    await revParse(tag, cwd)
+    await revParse(tag, cwd);
     return true;
-  } catch(e) {
+  } catch (e) {
     return false;
   }
 }

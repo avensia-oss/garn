@@ -2,6 +2,7 @@ import * as cliArgs from './cli-args';
 import * as git from './git';
 import * as workspace from './workspace';
 import * as log from './logging';
+import { projectPath } from '.';
 
 export type Version = {
   /** Three digit version, separated by dot. For example: 1.2.3 */
@@ -15,6 +16,11 @@ export type Version = {
   gitTag?: string;
   packageName?: string;
   prerelease?: Prerelease;
+};
+
+export type ChangeLog = {
+  version: string;
+  changes?: string[];
 };
 
 export type Prerelease = {
@@ -134,6 +140,13 @@ export function isVersionTag(s: string | null | undefined): s is string {
     return false;
   }
   return gitTagRegex.test(s) || /^v[0-9]+\.[0-9]+\.[0-9]+(\-[a-zA-Z0-9\.]+)?$/.test(s);
+}
+
+export async function getChangesSinceLastTag(packageName: string, path: string = '.'): Promise<ChangeLog> {
+  const latestTwoTags = await git.tagList(packageName, 2);
+  const log = await git.logChanges(latestTwoTags[0], latestTwoTags[1], path);
+
+  return { version: latestTwoTags[0], changes: log };
 }
 
 export async function fromTag(gitTag: string): Promise<Version> {
