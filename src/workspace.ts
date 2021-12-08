@@ -255,7 +255,7 @@ export function list() {
 
 function expandWorkspaces(packageJsonPath: string) {
   const packageJson = JSON.parse(workspace.readFileSync(packageJsonPath).toString());
-  if (packageJson.workspaces) {
+  if (Array.isArray(packageJson.workspaces) || Array.isArray(packageJson.workspaces?.packages)) {
     const workspaces: WorkspacePackage[] = [];
     for (const workspace of packageJson.workspaces.packages ?? packageJson.workspaces) {
       const expanded = glob.sync(path.join(workspace, garnExecutable()), { cwd: path.dirname(packageJsonPath) });
