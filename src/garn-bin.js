@@ -92,6 +92,7 @@ function compile() {
   parsed.options.module = ts.ModuleKind.CommonJS;
   parsed.options.jsx = ts.JsxEmit.React;
   parsed.options.incremental = true;
+  parsed.options.rootDir = backSlashToForwardSlash(rootPath);
   parsed.options.tsBuildInfoFile = backSlashToForwardSlash(path.join(buildCachePath, '.tsbuildinfo'));
   parsed.options.configFilePath = backSlashToForwardSlash(tsConfigPath);
 
