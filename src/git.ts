@@ -1,5 +1,3 @@
-import { format } from 'path';
-import { version } from 'typescript';
 import { spawn } from './exec';
 import { projectPath } from './index';
 import * as log from './logging';
@@ -41,29 +39,18 @@ export async function getTags(name: string = 'HEAD', cwd?: string) {
   return tags.split('\n').map(s => s.trim());
 }
 
-export async function logChanges(
-  from: string,
-  to: string,
-  path: string = '',
-  pretty: boolean = false,
-  prettyFormat: string = "format:'%h -%d %s (%cr) <%an>'",
-  cwd?: string,
-) {
-  let args = ['log'];
+export async function tagList(name: string, limit?: number, excludeRC: boolean = true, cwd?: string) {
+  let args = ['tag', '-l', name + '@*', '--sort=-version:refname'];
 
-  if (pretty) {
-    args.push('--pretty=', prettyFormat);
+  const tags = await git(args, cwd);
+  const splitTags = tags.split('\n').map(s => s.trim());
+
+  let result = splitTags;
+  if (excludeRC) {
+    result = splitTags.filter(s => !s.match(/(-rc.)/));
   }
 
-  args.push(from, '..', to, path);
-
-  const commits = await git(args, cwd);
-  return commits.split('\n').map(s => s.trim());
-}
-
-export async function tagList(name: string, limit: number = 1, cwd?: string) {
-  const tags = await git(['tag', '-l', name, '--sort=-version:refname | head -n', limit.toString()], cwd);
-  return tags.split('\n').map(s => s.trim());
+  return limit ? result.slice(0, limit) : result;
 }
 
 export function tag(tag: string, message?: string, cwd?: string) {
@@ -144,4 +131,121 @@ async function git(args: string[], cwd: string | undefined) {
 
 async function gitWithNetwork(args: string[], cwd: string | undefined) {
   await spawn('git', args, { stdio: 'inherit', cwd });
+}
+
+const seperator = '!!';
+const logFormat = `%h${seperator}%b${seperator}%cs${seperator}%an${seperator}%ae${seperator}%d${seperator}%s${seperator}%p`;
+const sha1Index = 0; //%h
+const bodyIndex = 1; //%b body
+const dateIndex = 2; //%cs short format (YYYY-MM-DD)
+const authorNameIndex = 3; //%an';
+const authorEmailIndex = 4; //%ae';
+const referencesIndex = 5; //%d tags etc';
+const subjectIndex = 6; //%s';
+const sha1RangeIndex = 7; //%p abbreviated parent hashes
+const commit_regex = '^((fixup!)|(feat|fix|refactor|style|chore|docs|test|revert))';
+const typeRegex = new RegExp(commit_regex);
+
+export type LogOptions = {
+  since?: string;
+  until?: string;
+  from?: string;
+  to?: string;
+  path?: string;
+  onlyMerges?: boolean;
+};
+
+export type Commit = {
+  sha1: string;
+  author: string;
+  email: string;
+  date: string;
+  type: string;
+  subject: string;
+  body: string;
+  references: string;
+  isMerge: boolean;
+  merge?: {
+    pullNumber: string;
+    baseSha1: string;
+    toSha1: string;
+    commits: Commit[];
+  };
+};
+
+export async function logBetween(
+  options: LogOptions = {
+    to: 'HEAD',
+    path: '',
+    onlyMerges: false,
+  },
+  cwd?: string,
+) {
+  let args = ['log', '--topo-order', `--pretty=format:'${logFormat}'`];
+
+  if (options.onlyMerges) {
+    args.push('--merges');
+  }
+
+  if (options?.from && options.from !== '') {
+    args.push(options.from + '..' + options.to);
+  }
+
+  if (options?.since && options.since !== '') {
+    args.push(`--since=${options.since}`);
+  }
+
+  if (options?.until && options.until !== '') {
+    args.push(`--until=${options.until}`);
+  }
+
+  if (options?.path && options.path != '') {
+    args.push(options.path);
+  }
+
+  const allcommits = await git(args, cwd);
+  const rawCommits = allcommits.split('\n').map(s => s.trim());
+  if (!rawCommits || rawCommits.length === 0) {
+    return [];
+  }
+
+  let commits: Commit[] = [];
+  rawCommits.forEach(commit => {
+    if (commit && commit !== '') {
+      commits.push(parseRawCommitMessage(commit));
+    }
+  });
+
+  return commits;
+}
+
+function parseRawCommitMessage(rawCommit: string): Commit {
+  const values = rawCommit.split(seperator);
+  const isMerge = (values[subjectIndex]?.startsWith('Merge') && values[subjectIndex]?.includes('#')) ?? false;
+  const commitType = !isMerge ? typeRegex.exec(values[subjectIndex]) ?? [''] : ['merge'];
+
+  const commit: Commit = {
+    sha1: values[sha1Index].slice(1), // remove quote
+    body: values[bodyIndex] ?? '',
+    date: values[dateIndex],
+    author: values[authorNameIndex] ?? '',
+    email: values[authorEmailIndex] ?? '',
+    references: values[referencesIndex] ?? '',
+    type: commitType[0],
+    isMerge: isMerge,
+    subject: isMerge ? 'Merge' : values[subjectIndex] ?? '',
+  };
+
+  if (isMerge) {
+    var mergeMessage = values[subjectIndex].split(' ');
+    var commitRange = values[sha1RangeIndex].slice(0, values[sha1RangeIndex].length - 1).split(' '); // remove quote
+    commit.merge = {
+      pullNumber: mergeMessage[3].slice(1), // remove #
+      baseSha1: commitRange[0],
+      toSha1: commitRange[1],
+      commits: [],
+    };
+  }
+
+  return commit;
 }

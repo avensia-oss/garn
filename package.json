@@ -1,6 +1,6 @@
 {
   "name": "@avensia-oss/garn",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "main": "dist/index.js",
   "repository": "https://github.com/avensia-oss/garn",
   "author": "Anders Ekdahl <anders.ekdahl@avensia.com>",
@@ -22,6 +22,7 @@
     "prepublishOnly": "yarn clean && yarn build"
   },
   "dependencies": {
+    "@octokit/rest": "^18.12.0",
     "chalk": "^4.1.0",
     "dotenv": "^8.2.0",
     "glob": "^7.1.6",
