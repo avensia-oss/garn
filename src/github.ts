@@ -1,7 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import * as release from './release';
 
-type LogLevel = 'debug' | 'warn' | 'info' | 'error';
+export type LogLevel = 'debug' | 'warn' | 'info' | 'error';
 
 export type GitHubConfig = {
   auth: string;
