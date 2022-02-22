@@ -37,7 +37,7 @@ export async function CreateRelease(tagName: string, srcPath: string = '', confi
 
   const releaseNotes = await release.generateReleaseNotes(srcPath, gitUrl, 'markdown');
   console.log(releaseNotes);
-  return await octokit.rest.repos.createRelease({
+  await octokit.rest.repos.createRelease({
     tag_name: tagName,
     name: releaseName ?? tagName,
     body: releaseNotes,

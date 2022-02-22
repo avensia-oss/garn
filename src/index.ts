@@ -30,6 +30,8 @@ export * as exec from './exec';
 export * as dotnet from './dotnet';
 export * as yarn from './yarn';
 export * as git from './git';
+export * as github from './github';
+export * as changelog from './change-log';
 export * as typescript from './typescript';
 
 const flags = cliArgs.flags;
