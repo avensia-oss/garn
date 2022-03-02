@@ -1,6 +1,13 @@
-import { spawn } from './exec';
+import { spawn, spawnSync } from './exec';
 import { projectPath } from './index';
 import * as log from './logging';
+import { fromTag, isVersionTag, Version } from './version';
+
+export type Tag = {
+  name: string;
+  version?: Version | null;
+  createdAt: Date;
+};
 
 export async function revParse(name: string, cwd?: string) {
   return git(['rev-parse', name], cwd);
@@ -37,6 +44,29 @@ export function branch(args: string[] = [], cwd?: string) {
 export async function getTags(name: string = 'HEAD', cwd?: string) {
   const tags = await git(['tag', '--points-at', name], cwd);
   return tags.split('\n').map(s => s.trim());
+}
+
+export async function getDetailedTags(cwd?: string) {
+  const deliminator = '!!!';
+  const args = ['for-each-ref', '--sort=-creatordate', `--format=%(refname)${deliminator}%(creatordate)`, 'refs/tags'];
+
+  const result = await git(args, cwd);
+
+  const tags = result.split('\n');
+
+  const parsedTags: Tag[] = await Promise.all(
+    tags.map(async tagRaw => {
+      const [tagWithRef, date] = tagRaw.split(deliminator);
+      const tag = tagWithRef.replace('refs/tags/', '');
+      return {
+        name: tag,
+        createdAt: new Date(date),
+        version: isVersionTag(tag) ? await fromTag(tag, false) : null,
+      };
+    }),
+  );
+
+  return parsedTags;
 }
 
 export async function tagList(name: string, limit?: number, excludeRC: boolean = true, cwd?: string) {
