@@ -6,13 +6,34 @@ import * as log from './logging';
 import * as variables from './variables';
 import * as prompt from './prompt';
 
+export function spawnSync(
+  command: string,
+  args: string[],
+  options?: childProcess.SpawnOptions,
+): { stdout: string; stderr: string } {
+  if (command.indexOf('/') === -1 && command.indexOf('\\') === -1) {
+    if (!isInPath(command)) {
+      throw new Error(
+        `The executable '${command}' could not be found in your PATH. You should add it to the PATH or reinstall the program.`,
+      );
+    }
+  }
+
+  const processResult = childProcess.spawnSync(command, args, options);
+
+  return {
+    stdout: processResult.stdout.toString('utf8'),
+    stderr: processResult.stderr.toString('utf8'),
+  };
+}
+
 export async function spawn(
   command: string,
   args: string[],
   options?: childProcess.SpawnOptions,
 ): Promise<{ stdout: string; stderr: string }> {
   if (command.indexOf('/') === -1 && command.indexOf('\\') === -1) {
-    if (!(await isInPath(command))) {
+    if (!isInPath(command)) {
       throw new Error(
         `The executable '${command}' could not be found in your PATH. You should add it to the PATH or reinstall the program.`,
       );
@@ -73,26 +94,33 @@ export async function spawn(
 }
 
 const commandsFoundInPath: string[] = [];
-export async function isInPath(command: string) {
+
+export function isInPath(command: string) {
   if (commandsFoundInPath.indexOf(command) !== -1) {
     return true;
   }
+
   try {
     if (os.platform() === 'win32') {
-      const res = await childProcess.spawnSync('where', [command]);
+      const res = childProcess.spawnSync('where', [command]);
+
       if (res.status !== 0) {
         return false;
       }
     } else {
-      const res = await childProcess.spawnSync('whereis', [command]);
+      const res = childProcess.spawnSync('whereis', [command]);
+
       if (res.status !== 0) {
         return false;
       }
     }
+
     commandsFoundInPath.push(command);
+
     return true;
   } catch (e) {
     log.verbose(`Error when trying to find ${command} in the PATH`, e);
+
     return false;
   }
 }
@@ -101,20 +129,25 @@ export async function executablePath(executableName: string, variableName: strin
   if (process.env[variableName]) {
     return process.env[variableName]!;
   }
+
   let executablePath = '';
+
   if (!isInPath(executableName)) {
     while (true) {
       executablePath = await prompt.question(`Enter the path to your '${executableName}' executable`);
+
       if (!fs.existsSync(executablePath)) {
         log.log(`No file called '${executablePath}' exists, please try again`);
       } else {
         break;
       }
     }
+
     variables.saveEnvVariable(variableName, executablePath);
   } else {
     variables.saveEnvVariable(variableName, executableName);
     executablePath = executableName;
   }
+
   return executablePath;
 }
