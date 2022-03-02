@@ -136,7 +136,7 @@ export function isVersionTag(s: string | null | undefined): s is string {
   return gitTagRegex.test(s) || /^v[0-9]+\.[0-9]+\.[0-9]+(\-[a-zA-Z0-9\.]+)?$/.test(s);
 }
 
-export async function fromTag(gitTag: string): Promise<Version> {
+export async function fromTag(gitTag: string, includeSha: boolean = true): Promise<Version> {
   if (!isVersionTag(gitTag)) {
     throw new Error(`The tag '${gitTag}' is not a valid version tag`);
   }
@@ -149,11 +149,13 @@ export async function fromTag(gitTag: string): Promise<Version> {
     prereleaseParts.length === 4 ? { tag: prereleaseParts[1], number: Number(prereleaseParts[2]) } : undefined;
 
   let sha1 = '';
-  try {
-    sha1 = await git.revParse(gitTag);
-  } catch (e) {
-    log.verbose(`Error resolving sh1 for tag '${gitTag}', falling back to sha1 for HEAD...`);
-    sha1 = await git.revParse('HEAD');
+  if (includeSha) {
+    try {
+      sha1 = await git.revParse(gitTag);
+    } catch (e) {
+      log.verbose(`Error resolving sh1 for tag '${gitTag}', falling back to sha1 for HEAD...`);
+      sha1 = await git.revParse('HEAD');
+    }
   }
 
   return {
