@@ -159,12 +159,18 @@ async function git(args: string[], cwd: string | undefined) {
   return result.stdout.trim();
 }
 
+function gitSync(args: string[], cwd: string | undefined) {
+  const result = spawnSync('git', args, { stdio: 'pipe', cwd: cwd ?? projectPath });
+  return result.stdout.trim();
+}
+
 async function gitWithNetwork(args: string[], cwd: string | undefined) {
   await spawn('git', args, { stdio: 'inherit', cwd });
 }
 
-const seperator = '!!';
-const logFormat = `%h${seperator}%b${seperator}%cs${seperator}%an${seperator}%ae${seperator}%d${seperator}%s${seperator}%p`;
+const separator = '?!!!!!?';
+const newLineSeparator = '!?????!';
+const logFormat = `%h${separator}%b${separator}%cs${separator}%an${separator}%ae${separator}%d${separator}%s${separator}%p${newLineSeparator}`;
 const sha1Index = 0; //%h
 const bodyIndex = 1; //%b body
 const dateIndex = 2; //%cs short format (YYYY-MM-DD)
@@ -211,14 +217,14 @@ export async function logBetween(
   },
   cwd?: string,
 ) {
-  let args = ['log', '--topo-order', `--pretty=format:'${logFormat}'`];
+  let args = ['log', '--topo-order', `--pretty=format:${logFormat}`];
 
   if (options.onlyMerges) {
     args.push('--merges');
   }
 
-  if (options?.from && options.from !== '') {
-    args.push(options.from + '..' + options.to);
+  if (options?.to && options.to !== '') {
+    args.push(options.to + '...' + options.from);
   }
 
   if (options?.since && options.since !== '') {
@@ -233,8 +239,13 @@ export async function logBetween(
     args.push(options.path);
   }
 
-  const allcommits = await git(args, cwd);
-  const rawCommits = allcommits.split('\n').map(s => s.trim());
+  const rawCommitOutput = await gitSync(args, cwd);
+
+  const rawCommits = rawCommitOutput
+    .replace(/\r?\n/g, '') // Removes new line
+    .split(newLineSeparator)
+    .map(s => s.trim());
+
   if (!rawCommits || rawCommits.length === 0) {
     return [];
   }
@@ -250,19 +261,18 @@ export async function logBetween(
 }
 
 function parseRawCommitMessage(rawCommit: string): Commit {
-  const values = rawCommit.split(seperator);
+  const values = rawCommit.split(separator);
   const isMerge = (values[subjectIndex]?.startsWith('Merge') && values[subjectIndex]?.includes('#')) ?? false;
   const commitType = !isMerge ? typeRegex.exec(values[subjectIndex]) ?? [''] : ['merge'];
-
   const commit: Commit = {
-    sha1: values[sha1Index].slice(1), // remove quote
+    sha1: values[sha1Index],
     body: values[bodyIndex] ?? '',
     date: values[dateIndex],
     author: values[authorNameIndex] ?? '',
     email: values[authorEmailIndex] ?? '',
     references: values[referencesIndex] ?? '',
     type: commitType[0],
-    isMerge: isMerge,
+    isMerge,
     subject: isMerge ? 'Merge' : values[subjectIndex] ?? '',
   };
 
