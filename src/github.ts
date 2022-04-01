@@ -1,5 +1,6 @@
 import { Octokit } from '@octokit/rest';
-import * as release from './release';
+import { changelog, git } from '.';
+import * as os from 'os';
 
 export type LogLevel = 'debug' | 'warn' | 'info' | 'error';
 
@@ -14,7 +15,13 @@ export type GitHubConfig = {
   generateAutoReleaseNotes?: boolean;
 };
 
-export async function CreateRelease(tagName: string, srcPath: string = '', config: GitHubConfig, releaseName?: string) {
+export async function CreateRelease(
+  tagName: string,
+  previousTag: string,
+  srcPath: string = '',
+  config: GitHubConfig,
+  releaseName?: string,
+) {
   const userAgent = `${config.app ?? 'garn/oss'} ${config.org} `.trim();
   const generateAutoReleaseNotes = config.generateAutoReleaseNotes ?? false;
 
@@ -33,10 +40,7 @@ export async function CreateRelease(tagName: string, srcPath: string = '', confi
   });
 
   const gitUrl = `https://github.com/${config.org}/${config.repo}/`;
-  console.log(gitUrl);
-
-  const releaseNotes = await release.generateReleaseNotes(srcPath, gitUrl, 'markdown');
-  console.log(releaseNotes);
+  const releaseNotes = await generateReleaseNotes(tagName, previousTag, srcPath, gitUrl, 'markdown');
   await octokit.rest.repos.createRelease({
     tag_name: tagName,
     name: releaseName ?? tagName,
@@ -45,4 +49,25 @@ export async function CreateRelease(tagName: string, srcPath: string = '', confi
     repo: config.repo,
     generate_release_notes: generateAutoReleaseNotes,
   });
+
+  async function generateReleaseNotes(
+    toTag: string,
+    fromTag: string,
+    workspaceSrcPath: string,
+    repoUrl: string,
+    format: changelog.ChangeLogFormat = 'markdown',
+  ) {
+    const packageResult = await git.logBetween({
+      to: toTag,
+      from: fromTag,
+      path: workspaceSrcPath,
+    });
+
+    let formattedOutput: string[] = changelog.formatTitle(toTag, repoUrl, format);
+    packageResult.forEach(commit => {
+      formattedOutput.push(...changelog.formatCommit(commit, repoUrl, format));
+    });
+
+    return formattedOutput.join(os.EOL);
+  }
 }

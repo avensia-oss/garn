@@ -1,6 +1,4 @@
 import * as chalk from 'chalk';
-import * as os from 'os';
-import * as changelog from './change-log';
 import * as git from './git';
 import * as log from './logging';
 import * as prompt from './prompt';
@@ -30,31 +28,6 @@ export async function tagPackagesPrerelease(
 
 export async function tagPackagesRelease(packages: string[], releaseBranch = defaultReleaseBranch) {
   return await createReleaseTag(false, releaseBranch, defaultPrereleaseTag, packages);
-}
-
-export async function generateReleaseNotes(
-  workspaceSrcPath: string,
-  repoUrl: string,
-  format: changelog.ChangeLogFormat = 'markdown',
-) {
-  const workSpaceName = workspace.current()?.name;
-  if (!workSpaceName) {
-    return;
-  }
-
-  const latestTags = await git.tagList(workSpaceName, 2, true);
-  const packageResult = await git.logBetween({
-    from: latestTags[1],
-    to: latestTags[0],
-    path: workspaceSrcPath,
-  });
-
-  let formattedOutput: string[] = changelog.formatTitle(latestTags[0], repoUrl, format);
-  packageResult.forEach(commit => {
-    formattedOutput.push(...changelog.formatCommit(commit, repoUrl, format));
-  });
-
-  return formattedOutput.join(os.EOL);
 }
 
 async function createReleaseTag(
