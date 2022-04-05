@@ -1,98 +1,138 @@
 #!/usr/bin/env node
 // @ts-check
 const fs = require('fs');
+const os = require('os');
+const childProcess = require('child_process');
 const path = require('path');
 const minimist = require('minimist');
+const isInstalledGlobally = require('is-installed-globally');
 
-const buildsystemPathArgName = 'buildsystem-path';
-if (!process.argv.find(v => v.includes(`--${buildsystemPathArgName}`))) {
-  const assumedBuildsystemPath = path.join(process.cwd(), 'buildsystem');
-  if (!fs.existsSync(assumedBuildsystemPath)) {
-    console.log('Error! No buildsystem folder exists at:', assumedBuildsystemPath);
+if (isInstalledGlobally) {
+  const ext = os.platform() === 'win32' ? '.cmd' : '';
+  const localGarn = path.join(process.cwd(), 'node_modules', '.bin', 'garn' + ext);
+  if (fs.existsSync(localGarn)) {
+    const childGarn = childProcess.spawn(localGarn, process.argv.slice(2), {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+    });
+    childGarn.on('exit', exitCode => process.exit(exitCode));
+  } else {
+    console.log('Error! Garn does not seem to be installed in the current working directory.');
     console.log('You are most likely executing Garn from the incorrect folder.');
-    console.log('Your working directory should contain a folder called buildsystem that contains the Garn tasks.');
+    console.log('Your working directory must contain a package.json file with Garn (@avensia-oss/garn) installed.');
     process.exit(1);
   }
-  process.argv.push('--' + buildsystemPathArgName, assumedBuildsystemPath);
-}
-
-const argv = minimist(process.argv.slice(2));
-
-const buildsystemPath = argv[buildsystemPathArgName];
-const buildCache = '.buildcache';
-const buildCachePath = path.join(buildsystemPath, buildCache);
-const buildCacheManifestPath = path.join(buildCachePath, '.manifest.json');
-const basePath = path.join(buildsystemPath, '..');
-let rootPath = basePath;
-if (!fs.existsSync(path.join(basePath, 'packages', 'garn.cmd'))) {
-  const parentName = path.basename(path.join(basePath, '..'));
-  if (parentName === 'packages') {
-    rootPath = path.join(basePath, '..', '..');
+} else {
+  const buildsystemPathArgName = 'buildsystem-path';
+  if (!process.argv.find(v => v.includes(`--${buildsystemPathArgName}`))) {
+    const assumedBuildsystemPath = path.join(process.cwd(), 'buildsystem');
+    if (!fs.existsSync(assumedBuildsystemPath)) {
+      console.log('Error! No buildsystem folder exists at:', assumedBuildsystemPath);
+      console.log('You are most likely executing Garn from the incorrect folder.');
+      console.log('Your working directory should contain a folder called buildsystem that contains the Garn tasks.');
+      process.exit(1);
+    }
+    process.argv.push('--' + buildsystemPathArgName, assumedBuildsystemPath);
   }
-}
 
-const needsCompile = anyFileInManifestHasChanged();
-let writeMetaData = false;
+  const argv = minimist(process.argv.slice(2));
 
-const skipCompile = 'asap' in argv && fs.existsSync(buildCacheManifestPath);
-
-if ((!skipCompile && needsCompile) || 'compile-buildsystem' in argv) {
-  writeMetaData = true;
-  console.log('Compiling buildsystem...');
-  compile();
-
-  // Temp code to copy package.json into .buildcache/
-  const allPackagesPath = path.join(rootPath, 'packages');
-  let packagesPath = path.join(buildCachePath, 'packages');
-  if (!fs.existsSync(packagesPath)) {
-    packagesPath = path.join(packagesPath, '..');
-  }
-  const packages = fs.readdirSync(packagesPath, {
-    withFileTypes: true,
-  });
-  for (const info of packages) {
-    const potentialPackageJson = path.join(allPackagesPath, info.name, 'package.json');
-    if (info.isDirectory && fs.existsSync(potentialPackageJson)) {
-      fs.copyFileSync(potentialPackageJson, path.join(packagesPath, info.name, 'package.json'));
+  const buildsystemPath = argv[buildsystemPathArgName];
+  const buildCache = '.buildcache';
+  const buildCachePath = path.join(buildsystemPath, buildCache);
+  const buildCacheManifestPath = path.join(buildCachePath, '.manifest.json');
+  const basePath = path.join(buildsystemPath, '..');
+  let rootPath = basePath;
+  if (!fs.existsSync(path.join(basePath, 'packages', 'garn.cmd'))) {
+    const parentName = path.basename(path.join(basePath, '..'));
+    if (parentName === 'packages') {
+      rootPath = path.join(basePath, '..', '..');
     }
   }
 
-  if (!fs.existsSync(path.join(buildCachePath, 'index.js'))) {
-    const files = fs.readdirSync(buildCachePath).filter(f => f !== 'node_modules');
-    const parts = buildsystemPath
-      .replace(/\\/g, '/')
-      .split('/')
-      .filter(f => !!f);
-    for (let i = 0; i < files.length; i++) {
-      const index = parts.indexOf(files[i]);
-      if (index !== -1) {
-        const relativePath = parts.slice(index).join('/');
-        const builtPath = path.join(buildCachePath, relativePath, 'index.js');
-        if (fs.existsSync(builtPath)) {
-          fs.writeFileSync(path.join(buildCachePath, 'index.js'), "require('./" + relativePath + "/index.js');");
+  compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buildCachePath, buildCacheManifestPath);
+}
+
+/**
+ * @param {minimist.ParsedArgs} argv
+ * @param {string} rootPath
+ * @param {string} buildsystemPath
+ * @param {string} buildCache
+ * @param {string} buildCachePath
+ * @param {string} buildCacheManifestPath
+ */
+function compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buildCachePath, buildCacheManifestPath) {
+  const needsCompile = anyFileInManifestHasChanged(buildCacheManifestPath, buildsystemPath);
+  let writeMetaData = false;
+
+  const skipCompile = 'asap' in argv && fs.existsSync(buildCacheManifestPath);
+
+  if ((!skipCompile && needsCompile) || 'compile-buildsystem' in argv) {
+    writeMetaData = true;
+    console.log('Compiling buildsystem...');
+    compile(argv, rootPath, buildsystemPath, buildCache, buildCachePath, buildCacheManifestPath);
+
+    // Temp code to copy package.json into .buildcache/
+    const allPackagesPath = path.join(rootPath, 'packages');
+    let packagesPath = path.join(buildCachePath, 'packages');
+    if (!fs.existsSync(packagesPath)) {
+      packagesPath = path.join(packagesPath, '..');
+    }
+    const packages = fs.readdirSync(packagesPath, {
+      withFileTypes: true,
+    });
+    for (const info of packages) {
+      const potentialPackageJson = path.join(allPackagesPath, info.name, 'package.json');
+      if (info.isDirectory && fs.existsSync(potentialPackageJson)) {
+        fs.copyFileSync(potentialPackageJson, path.join(packagesPath, info.name, 'package.json'));
+      }
+    }
+
+    if (!fs.existsSync(path.join(buildCachePath, 'index.js'))) {
+      const files = fs.readdirSync(buildCachePath).filter(f => f !== 'node_modules');
+      const parts = buildsystemPath
+        .replace(/\\/g, '/')
+        .split('/')
+        .filter(f => !!f);
+      for (let i = 0; i < files.length; i++) {
+        const index = parts.indexOf(files[i]);
+        if (index !== -1) {
+          const relativePath = parts.slice(index).join('/');
+          const builtPath = path.join(buildCachePath, relativePath, 'index.js');
+          if (fs.existsSync(builtPath)) {
+            fs.writeFileSync(path.join(buildCachePath, 'index.js'), "require('./" + relativePath + "/index.js');");
+          }
         }
       }
     }
   }
-}
 
-require(path.join(buildCachePath, 'index.js'));
-const garnJs = path.join(__dirname, '..', 'dist', 'index.js');
-const garn = require(garnJs);
-let promise = Promise.resolve();
-if (writeMetaData) {
-  promise = garn.writeMetaData(buildCachePath);
-} else {
-  promise = garn.writeMetaDataIfNotExists(buildCachePath);
-}
-promise.then(() => {
-  return garn.run().catch(e => {
-    console.error(e);
-    process.exit(1);
+  require(path.join(buildCachePath, 'index.js'));
+  const garnJs = path.join(__dirname, '..', 'dist', 'index.js');
+  const garn = require(garnJs);
+  let promise = Promise.resolve();
+  if (writeMetaData) {
+    promise = garn.writeMetaData(buildCachePath);
+  } else {
+    promise = garn.writeMetaDataIfNotExists(buildCachePath);
+  }
+  promise.then(() => {
+    return garn.run().catch(e => {
+      console.error(e);
+      process.exit(1);
+    });
   });
-});
+}
 
-function compile() {
+/**
+ * @param {minimist.ParsedArgs} argv
+ * @param {string} rootPath
+ * @param {string} buildsystemPath
+ * @param {string} buildCache
+ * @param {string} buildCachePath
+ * @param {string} buildCacheManifestPath
+ */
+function compile(argv, rootPath, buildsystemPath, buildCache, buildCachePath, buildCacheManifestPath) {
   const ts = require('typescript');
   const rimraf = require('rimraf');
   const tsConfigPath = path.join(buildsystemPath, 'tsconfig.json');
@@ -124,13 +164,17 @@ function compile() {
   });
 
   let allDiagnostics = ts.getPreEmitDiagnostics(program.getProgram()).concat(emitResult.diagnostics);
-  printDiagnostics(allDiagnostics);
+  printDiagnostics(allDiagnostics, buildsystemPath);
 
-  const manifest = buildCompilationManifest(buildCachePath, buildsystemPath);
+  const manifest = buildCompilationManifest(buildCachePath, buildsystemPath, buildCache);
   fs.writeFileSync(buildCacheManifestPath, JSON.stringify(manifest, null, 2));
 }
 
-function printDiagnostics(allDiagnostics) {
+/**
+ * @param {ts.Diagnostic[]} allDiagnostics
+ * @param {string} buildsystemPath
+ */
+function printDiagnostics(allDiagnostics, buildsystemPath) {
   const ts = require('typescript');
   const chalk = require('chalk');
   const projectPath = path.join(buildsystemPath, '..');
@@ -161,7 +205,12 @@ function printDiagnostics(allDiagnostics) {
   });
 }
 
-function buildCompilationManifest(dirInBuildCache, buildsystemPath) {
+/**
+ * @param {string} dirInBuildCache
+ * @param {string} buildsystemPath
+ * @param {string} buildCache
+ */
+function buildCompilationManifest(dirInBuildCache, buildsystemPath, buildCache) {
   const manifestFiles = [];
   let files = [];
   try {
@@ -172,7 +221,7 @@ function buildCompilationManifest(dirInBuildCache, buildsystemPath) {
     if (!fullPath.endsWith('.map') && !file.startsWith('.')) {
       const stat = fs.statSync(fullPath);
       if (stat.isDirectory()) {
-        const compilationManifest = buildCompilationManifest(fullPath, buildsystemPath);
+        const compilationManifest = buildCompilationManifest(fullPath, buildsystemPath, buildCache);
         for (const entry of compilationManifest.files) {
           manifestFiles.push(entry);
         }
@@ -222,7 +271,11 @@ function buildCompilationManifest(dirInBuildCache, buildsystemPath) {
   };
 }
 
-function anyFileInManifestHasChanged() {
+/**
+ * @param {string} buildCacheManifestPath
+ * @param {string} buildsystemPath
+ */
+function anyFileInManifestHasChanged(buildCacheManifestPath, buildsystemPath) {
   if (!fs.existsSync(buildCacheManifestPath)) {
     return true;
   }
@@ -250,17 +303,17 @@ function anyFileInManifestHasChanged() {
 
 /**
  *
- * @param {ts.Program} program 
- * @param {string[]} paths 
- * @returns 
+ * @param {ts.Program} program
+ * @param {string[]} paths
+ * @returns
  */
 function createPathRewriteTransformer(program, paths) {
   const ts = require('typescript');
 
   const rewrittenPaths = paths.map(path => new RegExp('^' + escapeRegExp(path).replace('\\*', '.')));
   /**
-   * 
-   * @param {string} modulePath 
+   *
+   * @param {string} modulePath
    * @returns boolean
    */
   function isRewrittenPath(modulePath) {
@@ -286,7 +339,7 @@ function createPathRewriteTransformer(program, paths) {
     if (mainName.startsWith('@')) {
       mainName += '/' + parts[1];
     }
-    
+
     let currentFilePackageFolder = path.dirname(currentFile);
 
     let tries = 0;
@@ -314,21 +367,18 @@ function createPathRewriteTransformer(program, paths) {
     const typeChecker = program.getTypeChecker();
 
     /**
-     * 
-     * @param {ts.Node} node 
-     * @returns 
+     *
+     * @param {ts.Node} node
+     * @returns
      * Handles `import('...')` and `require('...')` statements.
      */
     const visitNode = node => {
       if (
         ts.isCallExpression(node) &&
         node.arguments.length === 1 &&
-        ts.isStringLiteral(node.arguments[0]) && (
-          node.expression.kind === ts.SyntaxKind.ImportKeyword || ( // import
-            ts.isIdentifier(node.expression) &&
-            node.expression.originalKeywordKind === ts.SyntaxKind.RequireKeyword // require
-          )
-        )
+        ts.isStringLiteral(node.arguments[0]) &&
+        (node.expression.kind === ts.SyntaxKind.ImportKeyword || // import
+          (ts.isIdentifier(node.expression) && node.expression.originalKeywordKind === ts.SyntaxKind.RequireKeyword)) // require
       ) {
         const importPath = node.arguments[0];
         const importSymbol = typeChecker.getSymbolAtLocation(importPath);
@@ -449,7 +499,7 @@ function createPathRewriteTransformer(program, paths) {
         isRewrittenPath(node.moduleSpecifier.text)
       ) {
         const importSymbol = typeChecker.getSymbolAtLocation(node.moduleSpecifier);
-        
+
         if (
           importSymbol &&
           ts.isSourceFile(importSymbol.valueDeclaration) &&
