@@ -652,8 +652,9 @@ export async function writeMetaData(buildCachePath: string) {
   fs.writeFile(path.join(buildCachePath, garnMetaFile), JSON.stringify(json, null, 2), () => null);
 }
 
-export async function getMetaData(garnPath: string, isRetry = false): Promise<MetaData> {
-  const garnMetaFilePath = path.join(path.dirname(garnPath), 'buildsystem', '.buildcache', garnMetaFile);
+export async function getMetaData(workspacePath: string, isRetry = false): Promise<MetaData> {
+  const garnPath = path.join(workspacePath, 'node_modules', '.bin', garnExecutable());
+  const garnMetaFilePath = path.join(workspacePath, 'buildsystem', '.buildcache', garnMetaFile);
   if (fs.existsSync(garnMetaFilePath) && (isRetry || !('compile-buildsystem' in cliArgs.argv))) {
     try {
       return JSON.parse(fs.readFileSync(garnMetaFilePath).toString()) as MetaData;
@@ -667,8 +668,8 @@ export async function getMetaData(garnPath: string, isRetry = false): Promise<Me
     if ('compile-buildsystem' in cliArgs.argv) {
       args.push('--compile-buildsystem');
     }
-    await spawn(garnPath, args, { stdio: 'pipe', cwd: path.dirname(garnPath) });
-    return getMetaData(garnPath, true);
+    await spawn(garnPath, args, { stdio: 'pipe', cwd: workspacePath });
+    return getMetaData(workspacePath, true);
   } else {
     throw new Error(`Garn at '${garnPath}' does not seem to produce a meta file when executed`);
   }

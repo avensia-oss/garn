@@ -5,11 +5,12 @@ const path = require('path');
 const minimist = require('minimist');
 
 const buildsystemPathArgName = 'buildsystem-path';
-if (!process.argv.find(v => v === '--' + buildsystemPathArgName)) {
+if (!process.argv.find(v => v.includes(`--${buildsystemPathArgName}`))) {
   const assumedBuildsystemPath = path.join(process.cwd(), 'buildsystem');
   if (!fs.existsSync(assumedBuildsystemPath)) {
     console.log('Error! No buildsystem folder exists at:', assumedBuildsystemPath);
-    console.log('You are most likely executing Garn from the incorrect folder. Your working directory should contain a folder called buildsystem that contains the Garn tasks.');
+    console.log('You are most likely executing Garn from the incorrect folder.');
+    console.log('Your working directory should contain a folder called buildsystem that contains the Garn tasks.');
     process.exit(1);
   }
   process.argv.push('--' + buildsystemPathArgName, assumedBuildsystemPath);
