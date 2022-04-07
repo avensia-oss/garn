@@ -6,10 +6,10 @@ const childProcess = require('child_process');
 const path = require('path');
 const minimist = require('minimist');
 const isInstalledGlobally = require('is-installed-globally');
+const execExt = os.platform() === 'win32' ? '.cmd' : '';
 
 if (isInstalledGlobally) {
-  const ext = os.platform() === 'win32' ? '.cmd' : '';
-  const localGarn = path.join(process.cwd(), 'node_modules', '.bin', 'garn' + ext);
+  const localGarn = path.join(process.cwd(), 'node_modules', '.bin', 'garn' + execExt);
   if (fs.existsSync(localGarn)) {
     const childGarn = childProcess.spawn(localGarn, process.argv.slice(2), {
       cwd: process.cwd(),
@@ -50,7 +50,126 @@ if (isInstalledGlobally) {
     }
   }
 
-  compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buildCachePath, buildCacheManifestPath);
+  const yarnLockPath = path.join(rootPath, 'yarn.lock');
+  const packageLockJsonPath = path.join(rootPath, 'package-lock.json');
+  const copiedYarnLockPath = path.join(buildCachePath, '.yarn.lock');
+  const copiedPackageLockJsonPath = path.join(buildCachePath, '.package-lock.json');
+
+  const shouldRestore = shouldRestoreNpmPackages(
+    packageLockJsonPath,
+    yarnLockPath,
+    copiedPackageLockJsonPath,
+    copiedYarnLockPath,
+  );
+  if (shouldRestore === false) {
+    compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buildCachePath, buildCacheManifestPath);
+  } else {
+    restoreNpmPackages(
+      rootPath,
+      shouldRestore,
+      packageLockJsonPath,
+      yarnLockPath,
+      copiedPackageLockJsonPath,
+      copiedYarnLockPath,
+    );
+  }
+}
+
+/**
+ * @param {string} rootPath
+ * @param {'yarn' | 'npm'} restorePackagesWith
+ * @param {string} packageLockJsonPath
+ * @param {string} yarnLockPath
+ * @param {string} copiedPackageLockJsonPath
+ * @param {string} copiedYarnLockPath
+ */
+function restoreNpmPackages(
+  rootPath,
+  restorePackagesWith,
+  packageLockJsonPath,
+  yarnLockPath,
+  copiedPackageLockJsonPath,
+  copiedYarnLockPath,
+) {
+  const restartGarn = () => {
+    const garnPath = path.join(rootPath, 'node_modules', '.bin', 'garn' + execExt);
+    const garn = childProcess.spawn(garnPath, ['--force'], {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+    });
+    garn.on('exit', exitCode => process.exit(exitCode));
+  };
+
+  if (restorePackagesWith === 'yarn') {
+    let yarnPath = path.join(rootPath, 'yarn' + execExt);
+    if (!fs.existsSync(yarnPath)) {
+      yarnPath = 'yarn' + execExt;
+    }
+    const yarn = childProcess.spawn(yarnPath, ['--force'], {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+    });
+    yarn.on('exit', exitCode => {
+      if (exitCode < 1) {
+        fs.copyFileSync(packageLockJsonPath, copiedPackageLockJsonPath);
+        restartGarn();
+      } else {
+        process.exit(exitCode);
+      }
+    });
+  } else if (restorePackagesWith === 'npm') {
+    let npmPath = path.join(rootPath, 'npm' + execExt);
+    if (!fs.existsSync(npmPath)) {
+      npmPath = 'npm' + execExt;
+    }
+    const npm = childProcess.spawn(npmPath, ['install'], {
+      cwd: process.cwd(),
+      stdio: 'inherit',
+    });
+    npm.on('exit', exitCode => {
+      if (exitCode < 1) {
+        fs.copyFileSync(yarnLockPath, copiedYarnLockPath);
+        restartGarn();
+      } else {
+        process.exit(exitCode);
+      }
+    });
+  }
+}
+
+/**
+ * @param {string} packageLockJsonPath
+ * @param {string} yarnLockPath
+ * @param {string} copiedPackageLockJsonPath
+ * @param {string} copiedYarnLockPath
+ */
+function shouldRestoreNpmPackages(packageLockJsonPath, yarnLockPath, copiedPackageLockJsonPath, copiedYarnLockPath) {
+  if (fs.existsSync(yarnLockPath)) {
+    if (!fs.existsSync(copiedYarnLockPath)) {
+      return 'yarn';
+    } else {
+      const yarnLockStats = fs.statSync(yarnLockPath);
+      const copiedYarnLockStats = fs.statSync(copiedYarnLockPath);
+      if (yarnLockStats.mtime.getTime() !== copiedYarnLockStats.mtime.getTime()) {
+        return 'yarn';
+      } else {
+        return false;
+      }
+    }
+  } else if (fs.existsSync(packageLockJsonPath)) {
+    if (!fs.existsSync(copiedPackageLockJsonPath)) {
+      return 'npm';
+    } else {
+      const packageLockJsonStats = fs.statSync(packageLockJsonPath);
+      const copiedPackageLockJsonStats = fs.statSync(copiedPackageLockJsonPath);
+      if (packageLockJsonStats.mtime.getTime() !== copiedPackageLockJsonStats.mtime.getTime()) {
+        return 'npm';
+      } else {
+        return false;
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -285,7 +404,8 @@ function anyFileInManifestHasChanged(buildCacheManifestPath, buildsystemPath) {
   } catch (e) {
     return true;
   }
-  if (manifest.buildsystemPath !== buildsystemPath) {
+  if (path.resolve(manifest.buildsystemPath) !== path.resolve(buildsystemPath)) {
+    // Avoid trailing slashes
     return true;
   }
   for (const entry of manifest.files) {
