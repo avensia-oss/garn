@@ -36,7 +36,7 @@ if (isInstalledGlobally) {
   }
 
   const argv = minimist(process.argv.slice(2));
-
+  
   const buildsystemPath = argv[buildsystemPathArgName];
   const buildCache = '.buildcache';
   const buildCachePath = path.join(buildsystemPath, buildCache);
@@ -65,6 +65,7 @@ if (isInstalledGlobally) {
     compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buildCachePath, buildCacheManifestPath);
   } else {
     restoreNpmPackages(
+      argv,
       rootPath,
       shouldRestore,
       packageLockJsonPath,
@@ -76,6 +77,7 @@ if (isInstalledGlobally) {
 }
 
 /**
+ * @param {minimist.ParsedArgs} argv
  * @param {string} rootPath
  * @param {'yarn' | 'npm'} restorePackagesWith
  * @param {string} packageLockJsonPath
@@ -84,6 +86,7 @@ if (isInstalledGlobally) {
  * @param {string} copiedYarnLockPath
  */
 function restoreNpmPackages(
+  argv,
   rootPath,
   restorePackagesWith,
   packageLockJsonPath,
@@ -93,7 +96,7 @@ function restoreNpmPackages(
 ) {
   const restartGarn = () => {
     const garnPath = path.join(rootPath, 'node_modules', '.bin', 'garn' + execExt);
-    const garn = childProcess.spawn(garnPath, {
+    const garn = childProcess.spawn(garnPath, argv._, {
       cwd: process.cwd(),
       stdio: 'inherit',
     });
