@@ -93,7 +93,7 @@ function restoreNpmPackages(
 ) {
   const restartGarn = () => {
     const garnPath = path.join(rootPath, 'node_modules', '.bin', 'garn' + execExt);
-    const garn = childProcess.spawn(garnPath, ['--force'], {
+    const garn = childProcess.spawn(garnPath, {
       cwd: process.cwd(),
       stdio: 'inherit',
     });
@@ -105,13 +105,13 @@ function restoreNpmPackages(
     if (!fs.existsSync(yarnPath)) {
       yarnPath = 'yarn' + execExt;
     }
-    const yarn = childProcess.spawn(yarnPath, ['--force'], {
+    const yarn = childProcess.spawn(yarnPath, [], {
       cwd: process.cwd(),
       stdio: 'inherit',
     });
     yarn.on('exit', exitCode => {
       if (exitCode < 1) {
-        fs.copyFileSync(packageLockJsonPath, copiedPackageLockJsonPath);
+        cpSync(yarnLockPath, copiedYarnLockPath);
         restartGarn();
       } else {
         process.exit(exitCode);
@@ -128,13 +128,24 @@ function restoreNpmPackages(
     });
     npm.on('exit', exitCode => {
       if (exitCode < 1) {
-        fs.copyFileSync(yarnLockPath, copiedYarnLockPath);
+        cpSync(packageLockJsonPath, copiedPackageLockJsonPath);
         restartGarn();
       } else {
         process.exit(exitCode);
       }
     });
   }
+}
+
+/**
+ * Copy file at sourcePath to destinationPath and preserve mtime. 
+ * @param {string} sourcePath 
+ * @param {string} destinationPath 
+ */
+function cpSync(sourcePath, destinationPath) {
+  const { atime, mtime } = fs.statSync(sourcePath);
+  fs.copyFileSync(sourcePath, destinationPath);
+  fs.utimesSync(destinationPath, atime, mtime)
 }
 
 /**
@@ -150,6 +161,7 @@ function shouldRestoreNpmPackages(packageLockJsonPath, yarnLockPath, copiedPacka
     } else {
       const yarnLockStats = fs.statSync(yarnLockPath);
       const copiedYarnLockStats = fs.statSync(copiedYarnLockPath);
+
       if (yarnLockStats.mtime.getTime() !== copiedYarnLockStats.mtime.getTime()) {
         return 'yarn';
       } else {
@@ -162,6 +174,7 @@ function shouldRestoreNpmPackages(packageLockJsonPath, yarnLockPath, copiedPacka
     } else {
       const packageLockJsonStats = fs.statSync(packageLockJsonPath);
       const copiedPackageLockJsonStats = fs.statSync(copiedPackageLockJsonPath);
+      
       if (packageLockJsonStats.mtime.getTime() !== copiedPackageLockJsonStats.mtime.getTime()) {
         return 'npm';
       } else {
