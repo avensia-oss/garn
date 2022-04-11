@@ -14,6 +14,7 @@ import { fromTag, isVersionTag } from './version';
 export type WorkspacePackage = {
   name: string;
   garnPath: string;
+  workspacePath: string;
 };
 
 const taggedWorkspacesFlag = cliArgs.registerFlag<boolean>('tagged-workspaces', 'boolean', false);
@@ -72,7 +73,7 @@ export async function runTask(taskName: string, packageName?: string) {
   const packageNames = [];
   for (const pkg of packages) {
     if (packagesToRunTaskIn.find(p => p.name === pkg.name)) {
-      const packageMeta = await getMetaData(pkg.garnPath);
+      const packageMeta = await getMetaData(pkg.workspacePath);
       if (taskName in packageMeta.tasks) {
         if (!onlyInTagged || versions.find(v => v.packageName === pkg.name)) {
           packageNames.push(pkg.name);
@@ -159,7 +160,7 @@ export async function runGarnPlugin() {
       if (cliArgs.argv['--']?.length) {
         args.push('--', ...cliArgs.argv['--']);
       }
-      await spawn(pkg.garnPath, args);
+      await spawn(pkg.garnPath, args, { cwd: pkg.workspacePath });
     } catch (e) {
       return exit();
     }
@@ -212,7 +213,7 @@ export async function getGarnPluginMetaData() {
 
   const metaData: { [pkg: string]: { [taskName: string]: string[] } } = {};
   for (const pkg of packages) {
-    const packageMeta = await getMetaData(pkg.garnPath);
+    const packageMeta = await getMetaData(pkg.workspacePath);
     metaData[pkg.name] = packageMeta.tasks;
 
     for (const taskName of Object.keys(packageMeta.tasks)) {
@@ -255,18 +256,32 @@ export function list() {
 
 function expandWorkspaces(packageJsonPath: string) {
   const packageJson = JSON.parse(workspace.readFileSync(packageJsonPath).toString());
+
   if (Array.isArray(packageJson.workspaces) || Array.isArray(packageJson.workspaces?.packages)) {
     const workspaces: WorkspacePackage[] = [];
+
     for (const workspace of packageJson.workspaces.packages ?? packageJson.workspaces) {
-      const expanded = glob.sync(path.join(workspace, garnExecutable()), { cwd: path.dirname(packageJsonPath) });
+      // Find each workspace that have a dependency on garn.
+      const expanded = glob.sync(path.join(workspace, 'node_modules', '.bin', garnExecutable()), {
+        cwd: path.dirname(packageJsonPath),
+      });
+
       workspaces.push(
-        ...expanded.map(e => ({
-          name: path.basename(path.dirname(e)),
-          garnPath: path.join(path.dirname(packageJsonPath), e),
-        })),
+        ...expanded.map(e => {
+          // Goes from excite-packages/packages/core/node_modules/.bin/garn to excite-packages/packages/core
+          const relativeWorkspacePath = path.join(e, '..', '..', '..'); // Ugly af
+
+          return {
+            name: path.basename(relativeWorkspacePath),
+            workspacePath: path.join(path.dirname(packageJsonPath), relativeWorkspacePath),
+            garnPath: path.join(path.dirname(packageJsonPath), e),
+          };
+        }),
       );
     }
+
     return workspaces;
   }
+
   return undefined;
 }
