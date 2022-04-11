@@ -7,7 +7,7 @@ import * as git from './git';
 import * as cliArgs from './cli-args';
 import { Version } from './version';
 import * as log from './logging';
-import runInParallell from './run-in-parallell';
+import { runInParallel } from './run-in-parallel';
 import { spawn } from './exec';
 import { fromTag, isVersionTag } from './version';
 
@@ -103,7 +103,7 @@ export async function runTask(taskName: string, packageName?: string) {
   log.log('');
 
   const maxParallelism = (await cliArgs.flags.parallel.get()) ? Infinity : 1;
-  return await runInParallell(programs, true, maxParallelism);
+  return await runInParallel(programs, true, maxParallelism);
 }
 
 export async function runGarnPlugin() {

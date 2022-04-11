@@ -12,11 +12,7 @@ export type ParallelProgram = {
   prefix?: string;
 };
 
-export default async function runInParallel(
-  programs: ParallelProgram[],
-  isGarn: boolean = true,
-  maxParallelism = Infinity,
-) {
+export async function runInParallel(programs: ParallelProgram[], isGarn: boolean = true, maxParallelism = Infinity) {
   const batches: Array<Array<ParallelProgram>> = [];
   let i = 0;
   let currentBatch: ParallelProgram[] = [];
