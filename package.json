@@ -18,6 +18,7 @@
     "build": "tsc --noEmit false",
     "watch": "yarn build --watch",
     "clean": "rimraf dist",
+    "prepack": "yarn clean && yarn build",
     "prepublishOnly": "yarn clean && yarn build"
   },
   "dependencies": {
