@@ -6,6 +6,14 @@ import * as log from './logging';
 import * as variables from './variables';
 import * as prompt from './prompt';
 
+type SpawnSyncError = Error & {
+  code: string;
+  errno: number;
+  syscall: string;
+  spawnargs: string[];
+  path: string;
+};
+
 export function spawnSync(
   command: string,
   args: string[],
@@ -109,7 +117,11 @@ export function isInPath(command: string) {
       }
     } else {
       const res = childProcess.spawnSync('whereis', [command]);
-
+      if (res.error && (res.error as SpawnSyncError).code === 'ENOENT') {
+        // If `whereis` doesn't exist we assume that the command exists in the path. It might
+        // not but it's better to try and fail than to not try at all.
+        return true;
+      }
       if (res.status !== 0) {
         return false;
       }
