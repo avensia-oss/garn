@@ -138,7 +138,7 @@ export async function getChildArgs() {
 
 function valueOf(valueString: string, type: FlagType): any {
   if (type === 'boolean') {
-    return (['y', 'yes', 't', 'true'].indexOf(valueString.toLowerCase()) !== -1) as unknown;
+    return (['y', 'yes', 't', 'true', 'on'].indexOf(valueString.toLowerCase()) !== -1) as unknown;
   } else if (type === 'number') {
     return Number(valueString.replace(',', '.').replace(/[^0-9\.]+/, '')) as unknown;
   }
