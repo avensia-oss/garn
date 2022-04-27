@@ -32,7 +32,7 @@ if (isInstalledGlobally) {
       console.log('Your working directory should contain a folder called buildsystem that contains the Garn tasks.');
       process.exit(1);
     }
-    process.argv.push('--' + buildsystemPathArgName, assumedBuildsystemPath);
+    process.argv.splice(2, 0, '--' + buildsystemPathArgName, assumedBuildsystemPath);
   }
 
   const argv = minimist(process.argv.slice(2));
