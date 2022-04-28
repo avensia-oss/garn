@@ -6,6 +6,14 @@ import * as log from './logging';
 import * as variables from './variables';
 import * as prompt from './prompt';
 
+type SpawnSyncError = Error & {
+  code: string;
+  errno: number;
+  syscall: string;
+  spawnargs: string[];
+  path: string;
+};
+
 export function spawnSync(
   command: string,
   args: string[],
@@ -109,7 +117,9 @@ export function isInPath(command: string) {
       }
     } else {
       const res = childProcess.spawnSync('whereis', [command]);
-
+      if (res.error && (res.error as SpawnSyncError).code === 'ENOENT') {
+       throw new Error(`Error trying to locate binary for "${command}". Make sure that 'whereis' is installed on your system.`);
+      }
       if (res.status !== 0) {
         return false;
       }
