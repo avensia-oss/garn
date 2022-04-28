@@ -118,9 +118,7 @@ export function isInPath(command: string) {
     } else {
       const res = childProcess.spawnSync('whereis', [command]);
       if (res.error && (res.error as SpawnSyncError).code === 'ENOENT') {
-        // If `whereis` doesn't exist we assume that the command exists in the path. It might
-        // not but it's better to try and fail than to not try at all.
-        return true;
+       throw new Error(`Error trying to locate binary for "${command}". Make sure that 'whereis' is installed on your system.`);
       }
       if (res.status !== 0) {
         return false;
