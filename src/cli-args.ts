@@ -1,11 +1,12 @@
 import * as minimist from 'minimist';
 import * as log from './logging';
+import { buildsystemPathArgName, asapArgName, compileBuildsystemArgName, fromString, childGarnArgName } from './shared';
 
 export const argv = minimist(process.argv.slice(2), {
   '--': true,
 });
 
-export const buildsystemPathArgName = 'buildsystem-path';
+export { buildsystemPathArgName };
 export const buildsystemPath = argv[buildsystemPathArgName];
 
 export const testMode = 'test-mode' in argv;
@@ -53,7 +54,7 @@ export const flags: Flags = {
   buildServer: registerFlag<boolean>('build-server', 'boolean', () => !!process.env['TEAMCITY_VERSION']), // TODO: Detect other build servers as well
   logLevel: registerFlag<log.LogLevel>('log-level', 'string', 'log', ['verbose', 'info', 'log', 'warn', 'error']),
   version: registerFlag<string, undefined>('version', 'string', undefined),
-  asap: registerFlag<boolean>('asap', 'boolean', false),
+  asap: registerFlag<boolean>(asapArgName, 'boolean', false),
   parallel: registerFlag<boolean>('parallel', 'boolean', false),
 };
 
@@ -82,9 +83,9 @@ export function registerFlag<TValue, TDefaultValue = TValue>(
       const currentWorkspace = workspace.current();
       let value: TValue | TDefaultValue | undefined;
       if (currentWorkspace && process.env[currentWorkspace.name + '-' + name]) {
-        value = valueOf(process.env[currentWorkspace.name + '-' + name]!, type);
+        value = fromString(process.env[currentWorkspace.name + '-' + name]!, type);
       } else if (process.env[name]) {
-        value = valueOf(process.env[name]!, type);
+        value = fromString(process.env[name]!, type);
       } else if (defaultValue !== undefined || hasUndefinedAsExplicitDefault) {
         value = typeof defaultValue === 'function' ? (defaultValue as () => TDefaultValue)() : defaultValue;
         if (isPromise(value)) {
@@ -93,11 +94,11 @@ export function registerFlag<TValue, TDefaultValue = TValue>(
       }
       if (name in argv) {
         const valueString = String(argv[name]);
-        value = valueOf(valueString, type);
+        value = fromString(valueString, type);
       }
       if (currentWorkspace && currentWorkspace.name + '-' + name in argv) {
         const valueString = String(argv[currentWorkspace.name + '-' + name]);
-        value = valueOf(valueString, type);
+        value = fromString(valueString, type);
       }
       if (value === undefined && defaultValue === undefined && !hasUndefinedAsExplicitDefault) {
         if (explicitDefaultValue !== undefined || explicitDefaultValueIsExplicitlyUndefined) {
@@ -123,9 +124,12 @@ export const taskName = argv._[0] || 'default';
 
 export async function getChildArgs() {
   const args: Array<[string, string?]> = [];
-  args.push(['--child-garn']);
-  if ('compile-buildsystem' in argv) {
-    args.push(['--compile-buildsystem']);
+  args.push(['--' + childGarnArgName]);
+  if (compileBuildsystemArgName in argv) {
+    args.push(['--' + compileBuildsystemArgName]);
+  }
+  if (buildsystemPathArgName in argv) {
+    args.push(['--' + buildsystemPathArgName, argv[buildsystemPathArgName]]);
   }
   for (const flag of Object.keys(flags)) {
     const value = await flags[flag].get();
@@ -141,15 +145,6 @@ export async function getChildArgs() {
     }
   }
   return args;
-}
-
-function valueOf(valueString: string, type: FlagType): any {
-  if (type === 'boolean') {
-    return (['y', 'yes', 't', 'true', 'on'].indexOf(valueString.toLowerCase()) !== -1) as unknown;
-  } else if (type === 'number') {
-    return Number(valueString.replace(',', '.').replace(/[^0-9\.]+/, '')) as unknown;
-  }
-  return valueString;
 }
 
 function isPromise(x: unknown): x is Promise<any> {

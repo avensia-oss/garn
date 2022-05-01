@@ -5,10 +5,8 @@
   "repository": "https://github.com/avensia-oss/garn",
   "author": "Anders Ekdahl <anders.ekdahl@avensia.com>",
   "license": "MIT",
-  "bin": "src/garn-bin.js",
+  "bin": "dist/garn-bin.js",
   "files": [
-    "src/garn-bin.js",
-    "src/garn.lua",
     "dist/**/*"
   ],
   "publishConfig": {
@@ -48,5 +46,6 @@
     "@types/string-similarity": "^3.0.0",
     "@types/through": "^0.0.30",
     "prettier": "^2.2.1"
-  }
+  },
+  "packageManager": "yarn@1.22.21"
 }

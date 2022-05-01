@@ -12,6 +12,7 @@ import defaultTask from './default-task';
 import * as workspace from './workspace';
 import * as chalk from 'chalk';
 import { WorkspacePackage } from './workspace';
+import { childGarnArgName, compileBuildsystemArgName } from './shared';
 
 type Workpace = typeof workspace;
 type ExternalWorkspace = Omit<Workpace, 'runGarnPlugin' | 'getGarnPluginMetaData'>;
@@ -399,7 +400,9 @@ export async function spawnTask(taskName: string, taskGroup?: string) {
     }
   }
   log.verbose(`Spawning 'garn ${taskName}'`);
-  return await spawn(path.join(projectPath, garnExecutable()), args);
+  return await spawn(path.join(projectPath, 'node_modules', '.bin', garnExecutable()), args, {
+    cwd: projectPath,
+  });
 }
 
 export async function runTask(taskName: string, taskGroup?: string, dependantTaskResult?: any) {
@@ -521,7 +524,7 @@ export function garnExecutable() {
 }
 
 export async function run() {
-  if ((await cliArgs.flags.asap.get()) && !('child-garn' in cliArgs.argv)) {
+  if ((await cliArgs.flags.asap.get()) && !(childGarnArgName in cliArgs.argv)) {
     log.log(
       chalk.yellow(
         `You're using asap mode which means that things might break in unexpected ways as a sacrifice to get that sweet, sweet speed. If things doesn't seem to work, try the same command without --asap.`,
@@ -623,7 +626,7 @@ export async function writeMetaData(buildCachePath: string) {
   for (const flag of Object.keys(flags)) {
     cliFlags['--' + flags[flag].name] = flags[flag].possibleValues ?? [];
   }
-  cliFlags['--compile-buildsystem'] = [];
+  cliFlags['--' + compileBuildsystemArgName] = [];
   const pluginsMeta: { [name: string]: PluginMetaData } = {};
   for (const pluginName of Object.keys(plugins)) {
     const meta = await plugins[pluginName].getGarnPluginMetaData();
@@ -669,8 +672,8 @@ export async function getMetaData(pkg: WorkspacePackage, isRetry = false): Promi
   }
   if (!isRetry) {
     const args: string[] = [];
-    if ('compile-buildsystem' in cliArgs.argv) {
-      args.push('--compile-buildsystem');
+    if (compileBuildsystemArgName in cliArgs.argv) {
+      args.push('--' + compileBuildsystemArgName);
     }
 
     await spawn(garnPath, args, { stdio: 'pipe', cwd: pkg.workspacePath });

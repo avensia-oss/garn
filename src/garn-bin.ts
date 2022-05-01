@@ -1,12 +1,16 @@
 #!/usr/bin/env node
-// @ts-check
-const fs = require('fs');
-const crypto = require('crypto');
-const os = require('os');
-const childProcess = require('child_process');
-const path = require('path');
-const minimist = require('minimist');
-const isInstalledGlobally = require('is-installed-globally');
+import * as fs from 'fs';
+import * as crypto from 'crypto';
+import * as os from 'os';
+import * as childProcess from 'child_process';
+import * as path from 'path';
+import * as minimist from 'minimist';
+import * as isInstalledGlobally from 'is-installed-globally';
+// We import as type because not all code paths needs to import typescript, by doing it this way
+// we gain some startup time because we avoid importing the full typescript compiler
+import type * as typescript from 'typescript';
+import { buildsystemPathArgName, asapArgName, fromString, compileBuildsystemArgName } from './shared';
+
 const execExt = os.platform() === 'win32' ? '.cmd' : '';
 
 if (isInstalledGlobally) {
@@ -16,7 +20,7 @@ if (isInstalledGlobally) {
       cwd: process.cwd(),
       stdio: 'inherit',
     });
-    childGarn.on('exit', exitCode => process.exit(exitCode));
+    childGarn.on('exit', (exitCode: number) => process.exit(exitCode));
   } else {
     console.log('Error! Garn does not seem to be installed in the current working directory.');
     console.log('You are most likely executing Garn from the incorrect folder.');
@@ -24,7 +28,6 @@ if (isInstalledGlobally) {
     process.exit(1);
   }
 } else {
-  const buildsystemPathArgName = 'buildsystem-path';
   if (!process.argv.find(v => v.includes(`--${buildsystemPathArgName}`))) {
     const assumedBuildsystemPath = path.join(process.cwd(), 'buildsystem');
     if (!fs.existsSync(assumedBuildsystemPath)) {
@@ -76,7 +79,7 @@ if (isInstalledGlobally) {
  * @param {string} yarnLockPath
  * @returns string
  */
-function getYarnChecksumFilePath(yarnLockPath) {
+function getYarnChecksumFilePath(yarnLockPath: string) {
   const yarnLockChecksumPath = path.join(path.dirname(yarnLockPath), 'tools', '.yarn.checksum');
   return yarnLockChecksumPath;
 }
@@ -84,7 +87,7 @@ function getYarnChecksumFilePath(yarnLockPath) {
 /**
  * @param {string} yarnLockPath
  */
-function getYarnLockHash(yarnLockPath) {
+function getYarnLockHash(yarnLockPath: string) {
   return crypto.createHash('sha256').update(fs.readFileSync(yarnLockPath)).digest('hex');
 }
 
@@ -92,7 +95,7 @@ function getYarnLockHash(yarnLockPath) {
  * @param {string} yarnLockPath
  * @returns boolean
  */
-function getShouldUpdateLockFile(yarnLockPath) {
+function getShouldUpdateLockFile(yarnLockPath: string) {
   const yarnLockChecksumPath = getYarnChecksumFilePath(yarnLockPath);
   const lockFileHash = getYarnLockHash(yarnLockPath);
   let shouldUpdateLockFile = true;
@@ -117,13 +120,13 @@ function getShouldUpdateLockFile(yarnLockPath) {
  * @param {string} copiedYarnLockPath
  */
 function restoreNpmPackages(
-  rootPath,
-  restorePackagesWith,
-  buildCachePath,
-  packageLockJsonPath,
-  yarnLockPath,
-  copiedPackageLockJsonPath,
-  copiedYarnLockPath,
+  rootPath: string,
+  restorePackagesWith: 'yarn' | 'npm',
+  buildCachePath: string,
+  packageLockJsonPath: string,
+  yarnLockPath: string,
+  copiedPackageLockJsonPath: string,
+  copiedYarnLockPath: string,
 ) {
   const restartGarn = () => {
     const garnPath = path.join(rootPath, 'node_modules', '.bin', 'garn' + execExt);
@@ -131,7 +134,7 @@ function restoreNpmPackages(
       cwd: process.cwd(),
       stdio: 'inherit',
     });
-    garn.on('exit', exitCode => process.exit(exitCode));
+    garn.on('exit', (exitCode: number) => process.exit(exitCode));
   };
 
   if (!fs.existsSync(buildCachePath)) {
@@ -148,7 +151,7 @@ function restoreNpmPackages(
       cwd: process.cwd(),
       stdio: 'inherit',
     });
-    yarn.on('exit', exitCode => {
+    yarn.on('exit', (exitCode: number) => {
       if (exitCode < 1) {
         cpSync(yarnLockPath, copiedYarnLockPath);
 
@@ -170,7 +173,7 @@ function restoreNpmPackages(
       cwd: process.cwd(),
       stdio: 'inherit',
     });
-    npm.on('exit', exitCode => {
+    npm.on('exit', (exitCode: number) => {
       if (exitCode < 1) {
         cpSync(packageLockJsonPath, copiedPackageLockJsonPath);
         restartGarn();
@@ -183,10 +186,8 @@ function restoreNpmPackages(
 
 /**
  * Copy file at sourcePath to destinationPath and preserve mtime.
- * @param {string} sourcePath
- * @param {string} destinationPath
  */
-function cpSync(sourcePath, destinationPath) {
+function cpSync(sourcePath: string, destinationPath: string) {
   const { atime, mtime } = fs.statSync(sourcePath);
   fs.copyFileSync(sourcePath, destinationPath);
   fs.utimesSync(destinationPath, atime, mtime);
@@ -197,7 +198,11 @@ function cpSync(sourcePath, destinationPath) {
  * @param {string} yarnLockPath
  * @param {string} copiedPackageLockJsonPath
  */
-function shouldRestoreNpmPackages(packageLockJsonPath, yarnLockPath, copiedPackageLockJsonPath) {
+function shouldRestoreNpmPackages(
+  packageLockJsonPath: string,
+  yarnLockPath: string,
+  copiedPackageLockJsonPath: string,
+) {
   if (fs.existsSync(yarnLockPath)) {
     const hasNodeModulesFolder = fs.existsSync(path.join(yarnLockPath, '..', 'node_modules'));
     let shouldUpdateLockFile = getShouldUpdateLockFile(yarnLockPath);
@@ -224,21 +229,20 @@ function shouldRestoreNpmPackages(packageLockJsonPath, yarnLockPath, copiedPacka
   return false;
 }
 
-/**
- * @param {minimist.ParsedArgs} argv
- * @param {string} rootPath
- * @param {string} buildsystemPath
- * @param {string} buildCache
- * @param {string} buildCachePath
- * @param {string} buildCacheManifestPath
- */
-function compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buildCachePath, buildCacheManifestPath) {
+function compileIfNeededAndRun(
+  argv: minimist.ParsedArgs,
+  rootPath: string,
+  buildsystemPath: string,
+  buildCache: string,
+  buildCachePath: string,
+  buildCacheManifestPath: string,
+) {
   const needsCompile = anyFileInManifestHasChanged(buildCacheManifestPath, buildsystemPath);
   let writeMetaData = false;
 
-  const skipCompile = 'asap' in argv && fs.existsSync(buildCacheManifestPath);
+  const skipCompile = isAsap(argv) && fs.existsSync(buildCacheManifestPath);
 
-  if ((!skipCompile && needsCompile) || 'compile-buildsystem' in argv) {
+  if ((!skipCompile && needsCompile) || shouldCompile(argv)) {
     writeMetaData = true;
     console.log('Compiling buildsystem...');
     compile(argv, rootPath, buildsystemPath, buildCache, buildCachePath, buildCacheManifestPath);
@@ -279,7 +283,7 @@ function compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buil
   }
 
   require(path.join(buildCachePath, 'index.js'));
-  const garnJs = path.join(__dirname, '..', 'dist', 'index.js');
+  const garnJs = path.join(__dirname, 'index.js');
   const garn = require(garnJs);
   let promise = Promise.resolve();
   if (writeMetaData) {
@@ -287,27 +291,23 @@ function compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buil
   } else {
     promise = garn.writeMetaDataIfNotExists(buildCachePath);
   }
-  promise
-    .then(() => {
-      return garn.run().catch(e => {
-        console.error(e);
-        process.exit(1);
-      });
-    })
-    .catch(e => {
-      console.error('error writing garn metadata', e);
+
+  promise.then(() => {
+    return garn.run().catch((e: Error) => {
+      console.error(e);
+      process.exit(1);
     });
+  });
 }
 
-/**
- * @param {minimist.ParsedArgs} argv
- * @param {string} rootPath
- * @param {string} buildsystemPath
- * @param {string} buildCache
- * @param {string} buildCachePath
- * @param {string} buildCacheManifestPath
- */
-function compile(argv, rootPath, buildsystemPath, buildCache, buildCachePath, buildCacheManifestPath) {
+function compile(
+  argv: minimist.ParsedArgs,
+  rootPath: string,
+  buildsystemPath: string,
+  buildCache: string,
+  buildCachePath: string,
+  buildCacheManifestPath: string,
+) {
   const ts = require('typescript');
   const rimraf = require('rimraf');
   const tsConfigPath = path.join(buildsystemPath, 'tsconfig.json');
@@ -323,7 +323,7 @@ function compile(argv, rootPath, buildsystemPath, buildCache, buildCachePath, bu
   parsed.options.tsBuildInfoFile = backSlashToForwardSlash(path.join(buildCachePath, '.tsbuildinfo'));
   parsed.options.configFilePath = backSlashToForwardSlash(tsConfigPath);
 
-  if ('compile-buildsystem' in argv) {
+  if (shouldCompile(argv)) {
     rimraf.sync(parsed.options.outDir);
   }
 
@@ -345,11 +345,15 @@ function compile(argv, rootPath, buildsystemPath, buildCache, buildCachePath, bu
   fs.writeFileSync(buildCacheManifestPath, JSON.stringify(manifest, null, 2));
 }
 
-/**
- * @param {ts.Diagnostic[]} allDiagnostics
- * @param {string} buildsystemPath
- */
-function printDiagnostics(allDiagnostics, buildsystemPath) {
+function isAsap(argv: minimist.ParsedArgs) {
+  return asapArgName in argv && fromString(argv[asapArgName], 'boolean') !== false;
+}
+
+function shouldCompile(argv: minimist.ParsedArgs) {
+  return compileBuildsystemArgName in argv && fromString(argv[compileBuildsystemArgName], 'boolean') !== false;
+}
+
+function printDiagnostics(allDiagnostics: typescript.Diagnostic[], buildsystemPath: string) {
   const ts = require('typescript');
   const chalk = require('chalk');
   const projectPath = path.join(buildsystemPath, '..');
@@ -380,14 +384,20 @@ function printDiagnostics(allDiagnostics, buildsystemPath) {
   });
 }
 
-/**
- * @param {string} dirInBuildCache
- * @param {string} buildsystemPath
- * @param {string} buildCache
- */
-function buildCompilationManifest(dirInBuildCache, buildsystemPath, buildCache) {
-  const manifestFiles = [];
-  let files = [];
+type ManifestFile = {
+  original: {
+    path: string;
+    mtime: number;
+  };
+  compiled: {
+    path: string;
+    mtime: number;
+  };
+};
+
+function buildCompilationManifest(dirInBuildCache: string, buildsystemPath: string, buildCache: string) {
+  const manifestFiles: ManifestFile[] = [];
+  let files: string[] = [];
   try {
     files = fs.readdirSync(dirInBuildCache);
   } catch (e) {}
@@ -446,11 +456,7 @@ function buildCompilationManifest(dirInBuildCache, buildsystemPath, buildCache) 
   };
 }
 
-/**
- * @param {string} buildCacheManifestPath
- * @param {string} buildsystemPath
- */
-function anyFileInManifestHasChanged(buildCacheManifestPath, buildsystemPath) {
+function anyFileInManifestHasChanged(buildCacheManifestPath: string, buildsystemPath: string) {
   if (!fs.existsSync(buildCacheManifestPath)) {
     return true;
   }
@@ -477,22 +483,12 @@ function anyFileInManifestHasChanged(buildCacheManifestPath, buildsystemPath) {
   return false;
 }
 
-/**
- *
- * @param {ts.Program} program
- * @param {string[]} paths
- * @returns
- */
-function createPathRewriteTransformer(program, paths) {
-  const ts = require('typescript');
+function createPathRewriteTransformer(program: typescript.Program, paths: string[]) {
+  const ts = require('typescript') as typeof typescript;
 
   const rewrittenPaths = paths.map(path => new RegExp('^' + escapeRegExp(path).replace('\\*', '.')));
-  /**
-   *
-   * @param {string} modulePath
-   * @returns boolean
-   */
-  function isRewrittenPath(modulePath) {
+
+  function isRewrittenPath(modulePath: string) {
     for (const rewrittenPath of rewrittenPaths) {
       if (rewrittenPath.test(modulePath)) {
         return true;
@@ -505,7 +501,7 @@ function createPathRewriteTransformer(program, paths) {
   // it can mess with the Node module resolver. If we compile a .ts file that has
   // its own node_modules we want to ensure that we still require from that node_modules
   // and not a node_modules in the build destination.
-  function getLocalNodeModulesPath(importName, currentFile) {
+  function getLocalNodeModulesPath(importName: string, currentFile: string) {
     if (importName.startsWith('.')) {
       return false;
     }
@@ -539,16 +535,13 @@ function createPathRewriteTransformer(program, paths) {
     return undefined;
   }
 
-  return context => sourceFile => {
+  return (context: typescript.TransformationContext) => (sourceFile: typescript.SourceFile) => {
     const typeChecker = program.getTypeChecker();
 
     /**
-     *
-     * @param {ts.Node} node
-     * @returns
      * Handles `import('...')` and `require('...')` statements.
      */
-    const visitNode = node => {
+    const visitNode = (node: typescript.Node) => {
       if (
         ts.isCallExpression(node) &&
         node.arguments.length === 1 &&
@@ -560,7 +553,7 @@ function createPathRewriteTransformer(program, paths) {
         const importSymbol = typeChecker.getSymbolAtLocation(importPath);
 
         if (
-          importSymbol &&
+          importSymbol?.valueDeclaration &&
           ts.isSourceFile(importSymbol.valueDeclaration) &&
           !importSymbol.valueDeclaration.fileName.endsWith('.d.ts')
         ) {
@@ -627,7 +620,7 @@ function createPathRewriteTransformer(program, paths) {
         const importSymbol = typeChecker.getSymbolAtLocation(node.moduleSpecifier);
 
         if (
-          importSymbol &&
+          importSymbol?.valueDeclaration &&
           ts.isSourceFile(importSymbol.valueDeclaration) &&
           !importSymbol.valueDeclaration.fileName.endsWith('.d.ts')
         ) {
@@ -652,6 +645,7 @@ function createPathRewriteTransformer(program, paths) {
               node.modifiers,
               node.importClause,
               context.factory.createStringLiteral(relativeImport),
+              undefined,
             );
           }
         }
@@ -666,6 +660,7 @@ function createPathRewriteTransformer(program, paths) {
             context.factory.createStringLiteral(
               backSlashToForwardSlash(localNodeModules) + '/' + node.moduleSpecifier.text,
             ),
+            undefined,
           );
         }
       } else if (
@@ -677,7 +672,7 @@ function createPathRewriteTransformer(program, paths) {
         const importSymbol = typeChecker.getSymbolAtLocation(node.moduleSpecifier);
 
         if (
-          importSymbol &&
+          importSymbol?.valueDeclaration &&
           ts.isSourceFile(importSymbol.valueDeclaration) &&
           !importSymbol.valueDeclaration.fileName.endsWith('.d.ts')
         ) {
@@ -703,6 +698,7 @@ function createPathRewriteTransformer(program, paths) {
             node.isTypeOnly,
             node.exportClause,
             context.factory.createStringLiteral(relativeImport),
+            undefined,
           );
         }
       }
@@ -710,7 +706,7 @@ function createPathRewriteTransformer(program, paths) {
       return node;
     };
 
-    function visitNodeAndChildren(node) {
+    function visitNodeAndChildren(node: typescript.Node): typescript.Node {
       const visitedNode = visitNode(node);
       const visitedChildNode = ts.visitEachChild(visitedNode, childNode => visitNodeAndChildren(childNode), context);
       return visitedChildNode;
@@ -725,29 +721,41 @@ function createPathRewriteTransformer(program, paths) {
   };
 }
 
-function backSlashToForwardSlash(filePath) {
+function backSlashToForwardSlash(filePath: string) {
   return filePath.replace(/\\/g, '/');
 }
 
-function escapeRegExp(str) {
+function escapeRegExp(str: string) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function nodePathsTransformer(ts, program) {
-  return context => file => visitSourceFile(ts, file, program, context);
+function nodePathsTransformer(ts: typeof typescript, program: typescript.Program) {
+  return (context: typescript.TransformationContext) => (file: typescript.SourceFile) =>
+    visitSourceFile(ts, file, program, context);
 }
 
-function visitSourceFile(ts, sourceFile, program, context) {
+function visitSourceFile(
+  ts: typeof typescript,
+  sourceFile: typescript.SourceFile,
+  program: typescript.Program,
+  context: typescript.TransformationContext,
+) {
   const transformedSourceFile = ts.visitEachChild(
-    visitNode(ts, sourceFile),
+    visitNode(ts, context, sourceFile),
     childNode => visitNodeAndChildren(ts, childNode, sourceFile, program, context),
     context,
   );
   return transformedSourceFile;
 }
 
-function visitNodeAndChildren(ts, node, sourceFile, program, context) {
-  const visitedNode = visitNode(ts, node);
+function visitNodeAndChildren(
+  ts: typeof typescript,
+  node: typescript.Node,
+  sourceFile: typescript.SourceFile,
+  program: typescript.Program,
+  context: typescript.TransformationContext,
+): typescript.Node {
+  const visitedNode = visitNode(ts, context, node);
   if (visitedNode === node) {
     const visitedChildNode = ts.visitEachChild(
       visitedNode,
@@ -759,14 +767,14 @@ function visitNodeAndChildren(ts, node, sourceFile, program, context) {
   return visitedNode;
 }
 
-function visitNode(ts, node) {
-  if (node.kind == ts.SyntaxKind.Identifier) {
+function visitNode(ts: typeof typescript, context: typescript.TransformationContext, node: typescript.Node) {
+  if (ts.isIdentifier(node)) {
     if (node.escapedText === '___dirname') {
       const parts = node.getSourceFile().fileName.split('/');
       parts.pop();
-      return ts.createStringLiteral(parts.join('/'));
+      return context.factory.createStringLiteral(parts.join('/'));
     } else if (node.escapedText === '___filename') {
-      return ts.createStringLiteral(node.getSourceFile().fileName);
+      return context.factory.createStringLiteral(node.getSourceFile().fileName);
     }
   }
   return node;
