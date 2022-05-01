@@ -56,6 +56,7 @@ if (isInstalledGlobally) {
   const copiedPackageLockJsonPath = path.join(buildCachePath, '.package-lock.json');
 
   const shouldRestore = shouldRestoreNpmPackages(
+    argv,
     packageLockJsonPath,
     yarnLockPath,
     copiedPackageLockJsonPath,
@@ -156,12 +157,22 @@ function cpSync(sourcePath, destinationPath) {
 }
 
 /**
+ * @param {minimist.ParsedArgs} argv
  * @param {string} packageLockJsonPath
  * @param {string} yarnLockPath
  * @param {string} copiedPackageLockJsonPath
  * @param {string} copiedYarnLockPath
  */
-function shouldRestoreNpmPackages(packageLockJsonPath, yarnLockPath, copiedPackageLockJsonPath, copiedYarnLockPath) {
+function shouldRestoreNpmPackages(
+  argv,
+  packageLockJsonPath,
+  yarnLockPath,
+  copiedPackageLockJsonPath,
+  copiedYarnLockPath,
+) {
+  if (isAsap(argv)) {
+    return false;
+  }
   if (fs.existsSync(yarnLockPath)) {
     if (!fs.existsSync(copiedYarnLockPath)) {
       return 'yarn';
@@ -204,7 +215,7 @@ function compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buil
   const needsCompile = anyFileInManifestHasChanged(buildCacheManifestPath, buildsystemPath);
   let writeMetaData = false;
 
-  const skipCompile = 'asap' in argv && fs.existsSync(buildCacheManifestPath);
+  const skipCompile = isAsap(argv) && fs.existsSync(buildCacheManifestPath);
 
   if ((!skipCompile && needsCompile) || 'compile-buildsystem' in argv) {
     writeMetaData = true;
@@ -439,6 +450,13 @@ function anyFileInManifestHasChanged(buildCacheManifestPath, buildsystemPath) {
     }
   }
   return false;
+}
+
+/**
+ * @param {minimist.ParsedArgs} argv
+ */
+function isAsap(argv) {
+  return 'asap' in argv;
 }
 
 /**
