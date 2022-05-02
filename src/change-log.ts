@@ -17,9 +17,8 @@ const formatters: { [key: string]: ChangeLogFormatter } = {
       const lines: string[] = [];
 
       if (commit.isMerge) {
-        const refs = commit.references && commit.references != '' ? '- ${commit.references}' : '';
         lines.push(
-          `- [(#${commit.merge?.pullNumber} - ${commit.body})](${repoUrl}/pull/${commit.merge?.pullNumber}) ${refs}`,
+          `- [#${commit.merge?.pullNumber} - ${commit.body}](${repoUrl}/pull/${commit.merge?.pullNumber}) ${commit.references}`,
         );
         lines.push(`   `);
       } else {
@@ -29,10 +28,11 @@ const formatters: { [key: string]: ChangeLogFormatter } = {
           lines.push(`  ${commit.body}`);
           lines.push(`   `);
         }
+
+        lines.push(`  <sup>Date: ${commit.date}, author: [${commit.author}](${commit.email})</sup>  `);
+        lines.push(`   `);
       }
 
-      lines.push(`  <sup>Date: ${commit.date}, author: [${commit.author}](${commit.email})</sup>  `);
-      lines.push(`   `);
       return lines;
     },
   },

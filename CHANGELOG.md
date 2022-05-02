@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.5 (May 2, 2022)
+
+Fixes to the changelog to remove erroneous brackets and use consistent reference handling.
+Only show commit author and timestamp for individual commits.
+
 ## 0.4.1 (April 11, 2022)
 
 This version _shouldn't_ contain any breaking changes, but it does include some new features and quality-of-life stuff. The main gist of these changes are to reduce the need to have garn support scripts in your project, ie. `garn.cmd`/`./garn`, and to remove the need to add `./node_modules/.bin/` to your path.
@@ -15,7 +20,7 @@ This version _shouldn't_ contain any breaking changes, but it does include some 
 
 ## 0.4.0 [DEPRICATED]
 
-- Don't use. Missing vital files. 
+- Don't use. Missing vital files.
 
 ## 0.3.0 (January 20, 2022)
 
