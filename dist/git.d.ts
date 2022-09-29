@@ -1,0 +1,50 @@
+import { Version } from './version';
+export declare type Tag = {
+    name: string;
+    version?: Version | null;
+    createdAt: Date;
+};
+export declare function revParse(name: string, cwd?: string): Promise<string>;
+export declare function commitCountBetween(from: string, to: string, cwd?: string): Promise<string>;
+export declare function revParseAbbr(name: string, cwd?: string): Promise<string>;
+export declare function describe(args?: string[], cwd?: string): Promise<string>;
+export declare function status(args?: string[], cwd?: string): Promise<string>;
+export declare function checkout(name: string, cwd?: string): Promise<string>;
+export declare function branch(args?: string[], cwd?: string): Promise<string>;
+export declare function getTags(name?: string, cwd?: string): Promise<string[]>;
+export declare function getDetailedTags(cwd?: string): Promise<Tag[]>;
+export declare function tagList(name: string, limit?: number, excludeRC?: boolean, cwd?: string): Promise<string[]>;
+export declare function tag(tag: string, message?: string, cwd?: string): Promise<string>;
+export declare function tagExists(tag: string, cwd?: string): Promise<boolean>;
+export declare function deleteTag(tag: string, cwd?: string): Promise<string>;
+export declare function merge(name: string, commitMessage: string, fastForward?: boolean, cwd?: string): Promise<string>;
+export declare function branchName(name: string, cwd?: string): Promise<string>;
+export declare function push(names: string | string[], cwd?: string): Promise<void>;
+export declare function fetch(cwd?: string): Promise<void>;
+export declare function pull(withRebase?: boolean, cwd?: string): Promise<void>;
+export declare type LogOptions = {
+    since?: string;
+    until?: string;
+    from?: string;
+    to?: string;
+    path?: string;
+    onlyMerges?: boolean;
+};
+export declare type Commit = {
+    sha1: string;
+    author: string;
+    email: string;
+    date: string;
+    type: string;
+    subject: string;
+    body: string;
+    references: string;
+    isMerge: boolean;
+    merge?: {
+        pullNumber: string;
+        baseSha1: string;
+        toSha1: string;
+        commits: Commit[];
+    };
+};
+export declare function logBetween(options?: LogOptions, cwd?: string): Promise<Commit[]>;
