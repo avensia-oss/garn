@@ -222,7 +222,7 @@ function compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buil
     });
     for (const info of packages) {
       const potentialPackageJson = path.join(allPackagesPath, info.name, 'package.json');
-      if (info.isDirectory && fs.existsSync(potentialPackageJson)) {
+      if (info.isDirectory() && fs.existsSync(potentialPackageJson)) {
         fs.copyFileSync(potentialPackageJson, path.join(packagesPath, info.name, 'package.json'));
       }
     }
