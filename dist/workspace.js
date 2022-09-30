@@ -72,6 +72,7 @@ function runTask(taskName, packageName) {
                             program: pkg.garnPath,
                             args: [taskName],
                             prefix: '[' + pkg.name + '] ',
+                            cwd: pkg.workspacePath,
                         });
                     }
                 }

@@ -57,7 +57,7 @@ function executePrograms(programs, isGarn = true) {
                 }
             }
             log.verbose(`Spawning '${program.program}${args.length === 0 ? '' : ' '}${args.join(' ')}'`);
-            const command = (0, child_process_1.spawn)(program.program, args, { stdio });
+            const command = (0, child_process_1.spawn)(program.program, args, Object.assign({ stdio }, (program.cwd ? { cwd: program.cwd } : {})));
             const outThrough = through(function (data) {
                 this.queue((program.prefix || '') + data);
             }, function () {
