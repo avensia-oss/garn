@@ -1,6 +1,7 @@
 import * as workspace from 'fs';
 import * as path from 'path';
 import * as glob from 'glob';
+import * as fs from 'fs';
 
 import { garnExecutable, getMetaData } from './';
 import * as git from './git';
@@ -260,6 +261,7 @@ function expandWorkspaces(packageJsonPath: string) {
 
   if (Array.isArray(packageJson.workspaces) || Array.isArray(packageJson.workspaces?.packages)) {
     const workspaces: WorkspacePackage[] = [];
+    const relativeBuildsystemPath = path.relative(path.dirname(packageJsonPath), cliArgs.buildsystemPath);
 
     for (const workspace of packageJson.workspaces.packages ?? packageJson.workspaces) {
       // Find each workspace that have a dependency on garn.
@@ -268,16 +270,18 @@ function expandWorkspaces(packageJsonPath: string) {
       });
 
       workspaces.push(
-        ...expanded.map(e => {
-          // Goes from excite-packages/packages/core/node_modules/.bin/garn to excite-packages/packages/core
-          const relativeWorkspacePath = path.join(e, '..', '..', '..'); // Ugly af
+        ...expanded
+          .map(e => {
+            // Goes from excite-packages/packages/core/node_modules/.bin/garn to excite-packages/packages/core
+            const relativeWorkspacePath = path.join(e, '..', '..', '..'); // Ugly af
 
-          return {
-            name: path.basename(relativeWorkspacePath),
-            workspacePath: path.join(path.dirname(packageJsonPath), relativeWorkspacePath),
-            garnPath: path.join(path.dirname(packageJsonPath), e),
-          };
-        }),
+            return {
+              name: path.basename(relativeWorkspacePath),
+              workspacePath: path.join(path.dirname(packageJsonPath), relativeWorkspacePath),
+              garnPath: path.join(path.dirname(packageJsonPath), e),
+            };
+          })
+          .filter(entry => fs.existsSync(path.join(entry.workspacePath, relativeBuildsystemPath))),
       );
     }
 
