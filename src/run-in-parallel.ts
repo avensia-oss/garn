@@ -10,6 +10,7 @@ export type ParallelProgram = {
   program: string;
   args: string[];
   prefix?: string;
+  cwd?: string;
 };
 
 export async function runInParallel(programs: ParallelProgram[], isGarn: boolean = true, maxParallelism = Infinity) {
@@ -34,7 +35,7 @@ export async function runInParallel(programs: ParallelProgram[], isGarn: boolean
   return maxParallelism === Infinity ? results[0] : results;
 }
 
-function executePrograms(programs: { program: string; args: string[]; prefix?: string }[], isGarn: boolean = true) {
+function executePrograms(programs: ParallelProgram[], isGarn: boolean = true) {
   let anyStreamIsOutputting = false;
   let unpauseStreams: Array<() => void> = [];
   return Promise.all(
@@ -55,7 +56,7 @@ function executePrograms(programs: { program: string; args: string[]; prefix?: s
         }
 
         log.verbose(`Spawning '${program.program}${args.length === 0 ? '' : ' '}${args.join(' ')}'`);
-        const command = spawn(program.program, args, { stdio });
+        const command = spawn(program.program, args, { stdio, ...(program.cwd ? { cwd: program.cwd } : {}) });
 
         const outThrough = through(
           function (this: any, data) {

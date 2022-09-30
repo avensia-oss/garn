@@ -7,7 +7,7 @@ import * as git from './git';
 import * as cliArgs from './cli-args';
 import { Version } from './version';
 import * as log from './logging';
-import { runInParallel } from './run-in-parallel';
+import { ParallelProgram, runInParallel } from './run-in-parallel';
 import { spawn } from './exec';
 import { fromTag, isVersionTag } from './version';
 
@@ -27,7 +27,7 @@ export async function runTask(taskName: string, packageName?: string) {
     return;
   }
 
-  const programs: { program: string; args: string[]; prefix: string }[] = [];
+  const programs: ParallelProgram[] = [];
   let packagesToRunTaskIn = packages;
   if (packageName) {
     packagesToRunTaskIn = packagesToRunTaskIn.filter(p => p.name === packageName);
@@ -81,6 +81,7 @@ export async function runTask(taskName: string, packageName?: string) {
             program: pkg.garnPath,
             args: [taskName],
             prefix: '[' + pkg.name + '] ',
+            cwd: pkg.workspacePath,
           });
         }
       }
