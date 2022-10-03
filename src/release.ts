@@ -1,3 +1,53 @@
+/**
+ * # Different types of releases
+ * We support tagging of 3 different types of tags
+ * * release
+ * * release-candidate
+ * * base-prerelease
+ *
+ * ## release
+ * Tagging the next release will find the next unused major/minor/patch stable version x.y.z
+ * and create package-name@x.y.z tag
+ *
+ * ## release-candidate
+ * Tagging the next release-candidate will find the next available major/minor/patch version x.y.z
+ * and create package-name@x.y.z-prereleaseName.iteration tag
+ *
+ * ## base-prerelease
+ * Tagging the next base-prerelease will find the latest stable a.b.c
+ * and create package-name@a.b.c-prereleaseName.iteration tag
+ *
+ * # Examples:
+ *
+ * ## pre conditions
+ * the following tags exist (from newest to oldest):
+ * * esales@0.2.3-testing.1
+ * * esales@0.2.4-rc.1
+ * * esales@0.2.3
+ * * esales@0.2.3-rc.2
+ * * esales@0.2.3-rc.1
+ *
+ * ## Create a new release-candidate for esales package with patch bump and default prereleaseName
+ * ### post conditions
+ * esales@0.2.4-rc.2 exists
+ *
+ * ## Create a new release-candidate for esales package with minor bump and default prereleaseName
+ * ### post conditions
+ * esales@0.3.0-rc.1 exists
+ *
+ * ## Create a new release for esales package with minor bump
+ * ### post conditions
+ * esales@0.2.4 exists
+ *
+ * ## Create a new base-prerelease for esales package with prereleaseName testing
+ * ### post conditions
+ * esales@0.2.3-testing.2 exists
+ *
+ * ## Create a new base-prerelease for esales package with prereleaseName testingSomethingElse
+ * ### post conditions
+ * esales@0.2.3-testingSomethingElse.1 exists
+ */
+
 import * as chalk from 'chalk';
 import * as git from './git';
 import * as log from './logging';
@@ -10,12 +60,30 @@ const defaultPrereleaseTag = 'rc';
 
 prompt.selectOption;
 
+export enum ReleaseType {
+  Release,
+  ReleaseCandidate,
+  BasePrerelease,
+}
+
+export async function tagBasePrerelease(prereleaseTag = defaultPrereleaseTag, releaseBranch = defaultReleaseBranch) {
+  return await createReleaseTag(ReleaseType.BasePrerelease, releaseBranch, prereleaseTag, undefined);
+}
+
 export async function tagRelease(releaseBranch = defaultReleaseBranch) {
-  return await createReleaseTag(false, releaseBranch, defaultPrereleaseTag, undefined);
+  return await createReleaseTag(ReleaseType.Release, releaseBranch, defaultPrereleaseTag, undefined);
 }
 
 export async function tagPrerelease(prereleaseTag = defaultPrereleaseTag, releaseBranch = defaultReleaseBranch) {
-  return await createReleaseTag(true, releaseBranch, prereleaseTag, undefined);
+  return await createReleaseTag(ReleaseType.ReleaseCandidate, releaseBranch, prereleaseTag, undefined);
+}
+
+export async function tagPackagesBasePrerelease(
+  packages: string[],
+  prereleaseTag = defaultPrereleaseTag,
+  releaseBranch = defaultReleaseBranch,
+) {
+  return await createReleaseTag(ReleaseType.BasePrerelease, releaseBranch, prereleaseTag, packages);
 }
 
 export async function tagPackagesPrerelease(
@@ -23,15 +91,15 @@ export async function tagPackagesPrerelease(
   prereleaseTag = defaultPrereleaseTag,
   releaseBranch = defaultReleaseBranch,
 ) {
-  return await createReleaseTag(true, releaseBranch, prereleaseTag, packages);
+  return await createReleaseTag(ReleaseType.ReleaseCandidate, releaseBranch, prereleaseTag, packages);
 }
 
 export async function tagPackagesRelease(packages: string[], releaseBranch = defaultReleaseBranch) {
-  return await createReleaseTag(false, releaseBranch, defaultPrereleaseTag, packages);
+  return await createReleaseTag(ReleaseType.Release, releaseBranch, defaultPrereleaseTag, packages);
 }
 
 async function createReleaseTag(
-  isPrerelease: boolean,
+  releaseType: ReleaseType,
   releaseBranch: string,
   prereleaseTag: string,
   packages: string[] | undefined,
@@ -55,7 +123,7 @@ async function createReleaseTag(
 
   if (packages) {
     const packagesToInclude = await prompt.selectOptions(
-      `You are about tag a ${isPrerelease ? 'prerelease' : 'release'}. Which packages do you want to include?`,
+      `You are about tag a ${releaseType}. Which packages do you want to include?`,
       packages.map(p => ({
         name: p,
         value: p,
@@ -99,7 +167,7 @@ async function createReleaseTag(
 
   if (!isOnReleaseBranch) {
     if (
-      !isPrerelease &&
+      releaseType === ReleaseType.Release &&
       !(await prompt.answersYes(
         `It seems that you are not on ${releaseBranch}, do you still want to tag the current commit?`,
       ))
@@ -111,7 +179,7 @@ async function createReleaseTag(
     }
   }
 
-  if (isOnReleaseBranch && isPrerelease) {
+  if (isOnReleaseBranch && releaseType !== ReleaseType.Release) {
     if (
       !(await prompt.answersYes(
         `It seems that you are on ${releaseBranch}. Prereleases are typically made from a different branch than ${releaseBranch}, are you sure you want to continue?`,
@@ -128,7 +196,7 @@ async function createReleaseTag(
   for (const packageName of packagesToTag) {
     const skippedPrereleases: version.Version[] = [];
     let latestVersion: version.Version | undefined = undefined;
-    const packageVersion = await version.latestVersion(!isPrerelease, packageName, skippedPrereleases);
+    const packageVersion = await version.latestVersion(true, packageName, skippedPrereleases);
 
     if (!latestVersion || version.highest(packageVersion, latestVersion) === packageVersion) {
       latestVersion = packageVersion;
@@ -140,8 +208,8 @@ async function createReleaseTag(
 
     let newVersion: string;
     let prereleaseNumber: number | undefined;
-    if (!isPrerelease) {
-      const enteredVersion = await promptForNewVersion(latestVersion, isPrerelease, skippedPrereleases);
+    if (releaseType === ReleaseType.Release) {
+      const enteredVersion = await promptForNewVersion(latestVersion, ReleaseType.Release, skippedPrereleases);
       if (enteredVersion === undefined) {
         return false;
       } else {
@@ -149,15 +217,18 @@ async function createReleaseTag(
       }
       log.log('');
     } else {
-      if (latestVersion.prerelease) {
+      const previousPrerelease = skippedPrereleases.find(
+        sp => sp.version === latestVersion?.version && sp.prerelease?.tag === prereleaseTag,
+      );
+      if (previousPrerelease !== undefined) {
         newVersion = latestVersion.version;
-        prereleaseNumber = latestVersion.prerelease.number + 1;
+        prereleaseNumber = (previousPrerelease.prerelease?.number ?? 0) + 1;
         log.log(
-          `Latest version was also a prerelease (${latestVersion.gitTag}), increasing the prerelease number from that.`,
+          `Latest version was also a prerelease (${previousPrerelease.gitTag}), increasing the prerelease number from that to ${prereleaseNumber}.`,
         );
         log.log('');
       } else {
-        const enteredVersion = await promptForNewVersion(latestVersion, isPrerelease, skippedPrereleases);
+        const enteredVersion = await promptForNewVersion(latestVersion, releaseType, skippedPrereleases);
         if (enteredVersion === undefined) {
           return false;
         } else {
@@ -195,7 +266,7 @@ async function createReleaseTag(
     await git.push(gitTags.map(t => 'refs/tags/' + t));
   }
 
-  if (!isOnReleaseBranch && !isPrerelease) {
+  if (!isOnReleaseBranch && releaseType === ReleaseType.Release) {
     if (
       await prompt.answersYes(
         `Since you're not on ${releaseBranch}, do you want to merge and push this to ${releaseBranch} now?`,
@@ -217,7 +288,7 @@ async function createReleaseTag(
 
 async function promptForNewVersion(
   latestVersion: version.Version,
-  isPrerelease: boolean,
+  releaseType: ReleaseType,
   skippedPrereleases: version.Version[],
 ) {
   let currentVersion = latestVersion.gitTag ? ` The latest version is: ${latestVersion.version}.` : '';
@@ -228,39 +299,60 @@ async function promptForNewVersion(
     log.log('');
     log.log(chalk.underline(chalk.greenBright(`Package: '${latestVersion.packageName}'`)));
   }
-  if (!isPrerelease) {
+  if (releaseType === ReleaseType.Release) {
     if (skippedPrereleases.length) {
-      currentVersion += ` There is also a prerelease for ${skippedPrereleases[0].version}.`;
+      const higherPrereleaseVersion = skippedPrereleases.find(s => s > latestVersion);
+      if (higherPrereleaseVersion) {
+        currentVersion += ` There is also a prerelease for ${higherPrereleaseVersion}.`;
+      }
     }
     log.log(`Time to pick a new version number${packageText}.${currentVersion}`);
     log.log('');
     log.log(`Do you want to create:`);
     log.log('');
+  } else if (releaseType === ReleaseType.ReleaseCandidate) {
+    log.log(`Time to pick a new version number for the upcoming new release${packageText}.${currentVersion}`);
+    log.log('');
+    log.log(`Do you want to create a release candidate for:`);
+    log.log('');
   } else {
     log.log(`Time to pick a new version number for the upcoming new release${packageText}.${currentVersion}`);
     log.log('');
-    log.log(`Do you want to create a prerelease for:`);
+    log.log(`Do you want to create a base prerelease for:`);
     log.log('');
   }
-
-  const option = await prompt.selectOption('Do you want to create', [
-    {
-      name: 'A new major version? A major version can contain breaking changes',
-      value: 'major',
-    },
-    {
-      name: 'A new minor version? A minor version contains new features and fixes but no breaking changes',
-      value: 'minor',
-    },
-    {
-      name: 'A new patch version? A patch version only contains bug fixes',
-      value: 'patch',
-    },
-    {
-      name: 'I want to set my own version number thank you very much',
-      value: 'custom',
-    },
-  ]);
+  let option;
+  if (releaseType === ReleaseType.Release || releaseType === ReleaseType.ReleaseCandidate) {
+    option = await prompt.selectOption('Do you want to create', [
+      {
+        name: 'A new major version? A major version can contain breaking changes',
+        value: 'major',
+      },
+      {
+        name: 'A new minor version? A minor version contains new features and fixes but no breaking changes',
+        value: 'minor',
+      },
+      {
+        name: 'A new patch version? A patch version only contains bug fixes',
+        value: 'patch',
+      },
+      {
+        name: 'I want to set my own version number thank you very much',
+        value: 'custom',
+      },
+    ]);
+  } else {
+    option = await prompt.selectOption('Do you want to create', [
+      {
+        name: `${latestVersion.version}`,
+        value: 'latest',
+      },
+      {
+        name: 'I want to set my own version number thank you very much',
+        value: 'custom',
+      },
+    ]);
+  }
 
   while (true) {
     const parts = version.parse(latestVersion);
@@ -271,6 +363,8 @@ async function promptForNewVersion(
       newVersion = `${parts[0]}.${parts[1] + 1}.0`;
     } else if (option === 'patch') {
       newVersion = `${parts[0]}.${parts[1]}.${parts[2] + 1}`;
+    } else if (option === 'latest') {
+      newVersion = `${parts[0]}.${parts[1]}.${parts[2]}`;
     } else if (option === 'custom') {
       while (!version.isValid(newVersion)) {
         newVersion = await prompt.question('Enter a version of your choosing (format: x.y.z)', {
