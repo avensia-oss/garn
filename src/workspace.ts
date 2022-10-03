@@ -261,8 +261,6 @@ function expandWorkspaces(packageJsonPath: string) {
 
   if (Array.isArray(packageJson.workspaces) || Array.isArray(packageJson.workspaces?.packages)) {
     const workspaces: WorkspacePackage[] = [];
-    const relativeBuildsystemPath = path.relative(path.dirname(packageJsonPath), cliArgs.buildsystemPath);
-
     for (const workspace of packageJson.workspaces.packages ?? packageJson.workspaces) {
       // Find each workspace that have a dependency on garn.
       const expanded = glob.sync(path.join(workspace, 'node_modules', '.bin', garnExecutable()), {
@@ -281,7 +279,7 @@ function expandWorkspaces(packageJsonPath: string) {
               garnPath: path.join(path.dirname(packageJsonPath), e),
             };
           })
-          .filter(entry => fs.existsSync(path.join(entry.workspacePath, relativeBuildsystemPath))),
+          .filter(entry => fs.existsSync(path.join(entry.workspacePath, 'buildsystem'))),
       );
     }
 
