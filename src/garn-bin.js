@@ -260,6 +260,8 @@ function compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buil
       console.error(e);
       process.exit(1);
     });
+  }).catch(e => {
+    console.error('error writing garn metadata', e);
   });
 }
 
