@@ -66,7 +66,7 @@ export enum ReleaseType {
   BasePrerelease,
 }
 
-export async function tagBasePrerelease(prereleaseTag = defaultPrereleaseTag, releaseBranch = defaultReleaseBranch) {
+export async function tagBasePrerelease(prereleaseTag: string, releaseBranch = defaultReleaseBranch) {
   return await createReleaseTag(ReleaseType.BasePrerelease, releaseBranch, prereleaseTag, undefined);
 }
 
@@ -88,7 +88,7 @@ export async function tagPackagesBasePrerelease(
 
 export async function tagPackagesPrerelease(
   packages: string[],
-  prereleaseTag = defaultPrereleaseTag,
+  prereleaseTag: string,
   releaseBranch = defaultReleaseBranch,
 ) {
   return await createReleaseTag(ReleaseType.ReleaseCandidate, releaseBranch, prereleaseTag, packages);
