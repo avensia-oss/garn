@@ -222,7 +222,7 @@ function compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buil
     });
     for (const info of packages) {
       const potentialPackageJson = path.join(allPackagesPath, info.name, 'package.json');
-      if (info.isDirectory && fs.existsSync(potentialPackageJson)) {
+      if (info.isDirectory() && fs.existsSync(potentialPackageJson)) {
         fs.copyFileSync(potentialPackageJson, path.join(packagesPath, info.name, 'package.json'));
       }
     }
@@ -260,6 +260,8 @@ function compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buil
       console.error(e);
       process.exit(1);
     });
+  }).catch(e => {
+    console.error('error writing garn metadata', e);
   });
 }
 
