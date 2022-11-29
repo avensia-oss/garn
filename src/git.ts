@@ -41,6 +41,10 @@ export function branch(args: string[] = [], cwd?: string) {
   return git(['branch'].concat(args), cwd);
 }
 
+export async function getCurrentBranchName(cwd?: string) {
+  return await revParseAbbr('HEAD');
+}
+
 export async function getTags(name: string = 'HEAD', cwd?: string) {
   const tags = await git(['tag', '--points-at', name], cwd);
   return tags.split('\n').map(s => s.trim());
