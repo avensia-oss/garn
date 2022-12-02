@@ -35,10 +35,10 @@ export async function answersYes(q: string) {
   return answer['question'] as boolean;
 }
 
-export async function selectOption(
+export async function selectOption<T = string>(
   q: string,
-  options: string[] | { name: string; value: string }[],
-  defaultValue?: string,
+  options: string[] | { name: string; value: T }[],
+  defaultValue?: T,
 ) {
   if (await flags.noPrompt.get()) {
     throw new Error(`Can't call prompt.selectOption() when running on a CI server or with the --no-prompt flag`);
@@ -50,10 +50,10 @@ export async function selectOption(
     message: q,
     default: defaultValue,
   });
-  return answer['question'] as string;
+  return answer['question'] as T;
 }
 
-export async function selectOptions(q: string, options: { name: string; value: string; checked: boolean }[]) {
+export async function selectOptions<T = string>(q: string, options: { name: string; value: T; checked: boolean }[]) {
   if (await flags.noPrompt.get()) {
     throw new Error(`Can't call prompt.selectOptions() when running on a CI server or with the --no-prompt flag`);
   }
@@ -64,5 +64,5 @@ export async function selectOptions(q: string, options: { name: string; value: s
     choices: options,
     message: q,
   });
-  return answer['question'] as string[];
+  return answer['question'] as T[];
 }
