@@ -42,7 +42,17 @@ export function branch(args: string[] = [], cwd?: string) {
 }
 
 export async function getCurrentBranchName(cwd?: string) {
-  return await revParseAbbr('HEAD');
+  return await revParseAbbr('HEAD', cwd);
+}
+
+export async function getDefaultBranchName(cwd?: string) {
+  // Will have the format of origin/<default-branch-name> eg: origin/main
+  const originDefault = await revParseAbbr('origin/HEAD', cwd);
+  return originDefault.split('/')[1];
+}
+
+export async function getMergeBase(branch1: string, branch2: string, cwd?: string) {
+  return await git(['merge-base', branch1, branch2], cwd);
 }
 
 export async function getTags(name: string = 'HEAD', cwd?: string) {
@@ -74,17 +84,23 @@ export async function getDetailedTags(cwd?: string) {
 }
 
 export async function tagList(name: string, limit?: number, excludeRC: boolean = true, cwd?: string) {
-  let args = ['tag', '-l', name + '@*', '--sort=-version:refname'];
-
-  const tags = await git(args, cwd);
-  const splitTags = tags.split('\n').map(s => s.trim());
-
-  let result = splitTags;
+  const tags = await tagListWithPattern(`${name}@*`, cwd);
+  let result = tags;
   if (excludeRC) {
-    result = splitTags.filter(s => !s.match(/(-rc.)/));
+    result = tags.filter(s => !s.match(/(-rc\.)/));
   }
 
   return limit ? result.slice(0, limit) : result;
+}
+
+export async function tagListWithPattern(pattern: string, cwd?: string) {
+  const args = ['tag', '-l', pattern, '--sort=-version:refname'];
+  const tags = await git(args, cwd);
+
+  return tags
+    .split('\n')
+    .map(t => t.trim())
+    .filter(t => !!t); // Remove empty strings
 }
 
 export function tag(tag: string, message?: string, cwd?: string) {
