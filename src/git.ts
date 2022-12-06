@@ -9,6 +9,10 @@ export type Tag = {
   createdAt: Date;
 };
 
+export async function remoteShow(remoteName: string, cwd?: string) {
+  return git(['remote', 'show', remoteName], cwd);
+}
+
 export async function revParse(name: string, cwd?: string) {
   return git(['rev-parse', name], cwd);
 }
@@ -46,9 +50,9 @@ export async function getCurrentBranchName(cwd?: string) {
 }
 
 export async function getDefaultBranchName(cwd?: string) {
-  // Will have the format of origin/<default-branch-name> eg: origin/main
-  const originDefault = await revParseAbbr('origin/HEAD', cwd);
-  return originDefault.split('/')[1];
+  const origin = await remoteShow('origin');
+  const match = /HEAD branch: ([^\s\\]+)/.exec(origin);
+  return match ? match[1] : match;
 }
 
 export async function getMergeBase(branch1: string, branch2: string, cwd?: string) {
