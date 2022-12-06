@@ -1,8 +1,7 @@
-import { saveEnvVariable } from './variables';
-import { fetch } from 'cross-fetch';
 import * as log from './logging';
 import * as chalk from 'chalk';
 import * as open from 'open';
+import { fetch } from 'cross-fetch';
 
 const GITHUB_ACCESS_TOKEN_ENV_NAME = 'Github__OAuthAccessToken';
 
@@ -21,24 +20,26 @@ type DeviceCode = {
 };
 
 export class GithubAccess {
-  // "avensia-oss-garn" oauth app. This app lives in the avensia-oss organization.
+  // "avensia-oss-garn-oauth" oauth app. This app lives in the avensia-oss organization.
   private static OAuthClientId = '825e1cb8ef39aa07f127';
 
-  public static get accessToken() {
-    return process.env[GITHUB_ACCESS_TOKEN_ENV_NAME] || null;
+  public static async getAccessToken() {
+    const keytar = await import('keytar');
+    const token = await keytar.findPassword(GITHUB_ACCESS_TOKEN_ENV_NAME);
+    return token;
   }
 
-  public static set accessToken(token: string | null) {
-    process.env[GITHUB_ACCESS_TOKEN_ENV_NAME] = token ?? '';
-    saveEnvVariable(GITHUB_ACCESS_TOKEN_ENV_NAME, token ?? '');
+  public static async setAccessToken(token: string) {
+    const keytar = await import('keytar');
+    return await keytar.setPassword(GITHUB_ACCESS_TOKEN_ENV_NAME, GithubAccess.OAuthClientId, token);
   }
 
-  public static hasCredentials(): boolean {
-    return !!GithubAccess.accessToken;
+  public static async hasCredentials(): Promise<boolean> {
+    return !!(await GithubAccess.getAccessToken());
   }
 
   public static async validateCredentials() {
-    if (!GithubAccess.hasCredentials()) {
+    if (!(await GithubAccess.hasCredentials())) {
       try {
         await GithubAccess.captureCredentials();
       } catch (e) {
@@ -95,7 +96,7 @@ export class GithubAccess {
             const tokenCapture: OAuthReturn = await pollRequest.json();
 
             if (tokenCapture.access_token) {
-              GithubAccess.accessToken = tokenCapture.access_token;
+              GithubAccess.setAccessToken(tokenCapture.access_token);
               clearInterval(intervalId);
               log.log(chalk.bold.green('!', 'Github authentication successful!'));
               log.log('');

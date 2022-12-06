@@ -82,7 +82,7 @@ type GithubConfig = {
 export async function findPrForCurrentBranch({ organization, repo, branch }: GithubConfig) {
   await GithubAccess.validateCredentials();
   const octokit = new Octokit({
-    auth: GithubAccess.accessToken,
+    auth: await GithubAccess.getAccessToken(),
   });
   const currentBranch = branch ?? (await git.getCurrentBranchName());
   const prs = await octokit.rest.pulls.list({
