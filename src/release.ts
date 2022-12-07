@@ -8,8 +8,6 @@ import * as workspace from './workspace';
 const defaultReleaseBranch = 'master';
 const defaultPrereleaseTag = 'rc';
 
-prompt.selectOption;
-
 export async function tagRelease(releaseBranch = defaultReleaseBranch) {
   return await createReleaseTag(false, releaseBranch, defaultPrereleaseTag, undefined);
 }
@@ -87,7 +85,7 @@ async function createReleaseTag(
   await git.fetch();
   log.log('');
 
-  const currentBranch = await git.revParseAbbr('HEAD');
+  const currentBranch = await git.getCurrentBranchName();
   if ((await git.branch(['-r', '--contains', await git.revParse(currentBranch)])) === '') {
     log.log(`Your commits are not in sync with remote.`);
     log.log('Please pull/push to get them in sync first.');

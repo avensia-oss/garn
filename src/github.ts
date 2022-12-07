@@ -1,6 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import { changelog, git } from '.';
 import * as os from 'os';
+import { GithubAccess } from './github-access';
 
 export type LogLevel = 'debug' | 'warn' | 'info' | 'error';
 
@@ -70,4 +71,25 @@ export async function CreateRelease(
 
     return formattedOutput.join(os.EOL);
   }
+}
+
+type GithubConfig = {
+  organization: string;
+  repo: string;
+  branch?: string;
+};
+
+export async function findPrForCurrentBranch({ organization, repo, branch }: GithubConfig) {
+  await GithubAccess.validateCredentials();
+  const octokit = new Octokit({
+    auth: await GithubAccess.getAccessToken(),
+  });
+  const currentBranch = branch ?? (await git.getCurrentBranchName());
+  const prs = await octokit.rest.pulls.list({
+    owner: organization,
+    repo,
+    head: `${organization}:${currentBranch}`,
+  });
+
+  return prs.data;
 }

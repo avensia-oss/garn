@@ -27,6 +27,9 @@ if (fs.existsSync(envVariablesFile)) {
   dotenv.config({ path: envVariablesFile });
 } else if (explicitPathFromPackageJson) {
   envVariablesFile = explicitPathFromPackageJson;
+  // Create an empty .env-file. This allows for child-garn instances to reach the same file before it has been written to.
+  fs.closeSync(fs.openSync(envVariablesFile, 'w'));
+  fs.chmodSync(envVariablesFile, '600');
 }
 
 const variables: { [name: string]: Variable<unknown, unknown> } = {};

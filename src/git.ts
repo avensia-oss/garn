@@ -9,6 +9,10 @@ export type Tag = {
   createdAt: Date;
 };
 
+export async function remoteShow(remoteName: string, cwd?: string) {
+  return git(['remote', 'show', remoteName], cwd);
+}
+
 export async function revParse(name: string, cwd?: string) {
   return git(['rev-parse', name], cwd);
 }
@@ -41,6 +45,20 @@ export function branch(args: string[] = [], cwd?: string) {
   return git(['branch'].concat(args), cwd);
 }
 
+export async function getCurrentBranchName(cwd?: string) {
+  return await revParseAbbr('HEAD', cwd);
+}
+
+export async function getDefaultBranchName(cwd?: string) {
+  const origin = await remoteShow('origin');
+  const match = /HEAD branch: ([^\s\\]+)/.exec(origin);
+  return match ? match[1] : match;
+}
+
+export async function getMergeBase(branch1: string, branch2: string, cwd?: string) {
+  return await git(['merge-base', branch1, branch2], cwd);
+}
+
 export async function getTags(name: string = 'HEAD', cwd?: string) {
   const tags = await git(['tag', '--points-at', name], cwd);
   return tags.split('\n').map(s => s.trim());
@@ -70,17 +88,23 @@ export async function getDetailedTags(cwd?: string) {
 }
 
 export async function tagList(name: string, limit?: number, excludeRC: boolean = true, cwd?: string) {
-  let args = ['tag', '-l', name + '@*', '--sort=-version:refname'];
-
-  const tags = await git(args, cwd);
-  const splitTags = tags.split('\n').map(s => s.trim());
-
-  let result = splitTags;
+  const tags = await tagListWithPattern(`${name}@*`, cwd);
+  let result = tags;
   if (excludeRC) {
-    result = splitTags.filter(s => !s.match(/(-rc.)/));
+    result = tags.filter(s => !s.match(/(-rc\.)/));
   }
 
   return limit ? result.slice(0, limit) : result;
+}
+
+export async function tagListWithPattern(pattern: string, cwd?: string) {
+  const args = ['tag', '-l', pattern, '--sort=-version:refname'];
+  const tags = await git(args, cwd);
+
+  return tags
+    .split('\n')
+    .map(t => t.trim())
+    .filter(t => !!t); // Remove empty strings
 }
 
 export function tag(tag: string, message?: string, cwd?: string) {

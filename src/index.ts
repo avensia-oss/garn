@@ -33,6 +33,7 @@ export * as git from './git';
 export * as github from './github';
 export * as changelog from './change-log';
 export * as typescript from './typescript';
+export * from './github-access';
 
 const flags = cliArgs.flags;
 export const projectPath = path.join(cliArgs.buildsystemPath, '..');
