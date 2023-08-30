@@ -280,7 +280,7 @@ function expandWorkspaces(packageJsonPath: string) {
               garnPath: path.join(path.dirname(packageJsonPath), e),
             };
           })
-          .filter(entry => fs.existsSync(path.join(entry.workspacePath, 'buildsystem'))),
+          .filter(entry => fs.existsSync(path.join(entry.workspacePath, 'buildsystem', 'tsconfig.json'))),
       );
     }
 
