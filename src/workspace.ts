@@ -74,7 +74,7 @@ export async function runTask(taskName: string, packageName?: string) {
   const packageNames = [];
   for (const pkg of packages) {
     if (packagesToRunTaskIn.find(p => p.name === pkg.name)) {
-      const packageMeta = await getMetaData(pkg.workspacePath);
+      const packageMeta = await getMetaData(pkg);
       if (taskName in packageMeta.tasks) {
         if (!onlyInTagged || versions.find(v => v.packageName === pkg.name)) {
           packageNames.push(pkg.name);
@@ -215,7 +215,7 @@ export async function getGarnPluginMetaData() {
 
   const metaData: { [pkg: string]: { [taskName: string]: string[] } } = {};
   for (const pkg of packages) {
-    const packageMeta = await getMetaData(pkg.workspacePath);
+    const packageMeta = await getMetaData(pkg);
     metaData[pkg.name] = packageMeta.tasks;
 
     for (const taskName of Object.keys(packageMeta.tasks)) {
@@ -264,20 +264,19 @@ function expandWorkspaces(packageJsonPath: string) {
 
     for (const workspace of packageJson.workspaces.packages ?? packageJson.workspaces) {
       // Find each workspace that have a dependency on garn.
-      const expanded = glob.sync(path.join(workspace, 'node_modules', '.bin', garnExecutable()), {
+      const expanded = glob.sync(path.join(workspace, 'buildsystem', 'tsconfig.json'), {
         cwd: path.dirname(packageJsonPath),
       });
 
       workspaces.push(
         ...expanded
           .map(e => {
-            // Goes from excite-packages/packages/core/node_modules/.bin/garn to excite-packages/packages/core
-            const relativeWorkspacePath = path.join(e, '..', '..', '..'); // Ugly af
-
+            // Goes from excite-packages/packages/core/buildsystem/tsconfig.json to excite-packages/packages/core
+            const relativeWorkspacePath = path.join(e, '..', '..'); // Ugly af
             return {
               name: path.basename(relativeWorkspacePath),
               workspacePath: path.join(path.dirname(packageJsonPath), relativeWorkspacePath),
-              garnPath: path.join(path.dirname(packageJsonPath), e),
+              garnPath: path.join(packageJsonPath, '..', 'node_modules', '.bin', garnExecutable()),
             };
           })
           .filter(entry => fs.existsSync(path.join(entry.workspacePath, 'buildsystem', 'tsconfig.json'))),
