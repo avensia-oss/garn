@@ -258,6 +258,7 @@ export function list() {
 
 function expandWorkspaces(packageJsonPath: string) {
   const packageJson = JSON.parse(workspace.readFileSync(packageJsonPath).toString());
+  const projectRoot = path.dirname(packageJsonPath);
 
   if (Array.isArray(packageJson.workspaces) || Array.isArray(packageJson.workspaces?.packages)) {
     const workspaces: WorkspacePackage[] = [];
@@ -265,7 +266,7 @@ function expandWorkspaces(packageJsonPath: string) {
     for (const workspace of packageJson.workspaces.packages ?? packageJson.workspaces) {
       // Find each workspace that have a dependency on garn.
       const expanded = glob.sync(path.join(workspace, 'buildsystem', 'tsconfig.json'), {
-        cwd: path.dirname(packageJsonPath),
+        cwd: projectRoot,
       });
 
       workspaces.push(
@@ -275,8 +276,8 @@ function expandWorkspaces(packageJsonPath: string) {
             const relativeWorkspacePath = path.join(e, '..', '..'); // Ugly af
             return {
               name: path.basename(relativeWorkspacePath),
-              workspacePath: path.join(path.dirname(packageJsonPath), relativeWorkspacePath),
-              garnPath: path.join(packageJsonPath, '..', 'node_modules', '.bin', garnExecutable()),
+              workspacePath: path.join(projectRoot, relativeWorkspacePath),
+              garnPath: path.join(projectRoot, 'node_modules', '.bin', garnExecutable()),
             };
           })
           .filter(entry => fs.existsSync(path.join(entry.workspacePath, 'buildsystem', 'tsconfig.json'))),
