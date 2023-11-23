@@ -673,14 +673,8 @@ export async function getMetaData(pkg: WorkspacePackage, isRetry = false): Promi
       args.push('--compile-buildsystem');
     }
 
-    return await new Promise(async resolve => {
-      spawn(garnPath, args, { stdio: 'pipe', cwd: pkg.workspacePath }).finally(() => {
-        // Push the resolve one tick.
-        setTimeout(() => {
-          resolve(getMetaData(pkg, true));
-        });
-      });
-    });
+    await spawn(garnPath, args, { stdio: 'pipe', cwd: pkg.workspacePath });
+    return getMetaData(pkg, true);
   } else {
     throw new Error(`Garn at '${garnPath}' does not seem to produce a meta file when executed`);
   }
