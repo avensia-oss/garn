@@ -149,8 +149,7 @@ function restoreNpmPackages(
       stdio: 'inherit',
     });
     yarn.on('exit', exitCode => {
-      const ec = exitCode || 1;
-      if (ec < 1) {
+      if (exitCode < 1) {
         cpSync(yarnLockPath, copiedYarnLockPath);
 
         const yarnLockChecksumPath = getYarnChecksumFilePath(yarnLockPath);
@@ -159,7 +158,7 @@ function restoreNpmPackages(
 
         restartGarn();
       } else {
-        process.exit(ec);
+        process.exit(exitCode);
       }
     });
   } else if (restorePackagesWith === 'npm') {
