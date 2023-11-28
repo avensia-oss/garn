@@ -77,7 +77,7 @@ if (isInstalledGlobally) {
  * @returns string
  */
 function getYarnChecksumFilePath(yarnLockPath) {
-  const yarnLockChecksumPath = path.join(path.dirname(yarnLockPath), '.yarn.checksum');
+  const yarnLockChecksumPath = path.join(path.dirname(yarnLockPath), 'tools', '.yarn.checksum');
   return yarnLockChecksumPath;
 }
 
