@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // @ts-check
 const fs = require('fs');
+const crypto = require('crypto');
 const os = require('os');
 const childProcess = require('child_process');
 const path = require('path');
@@ -55,12 +56,7 @@ if (isInstalledGlobally) {
   const copiedYarnLockPath = path.join(buildCachePath, '.yarn.lock');
   const copiedPackageLockJsonPath = path.join(buildCachePath, '.package-lock.json');
 
-  const shouldRestore = shouldRestoreNpmPackages(
-    packageLockJsonPath,
-    yarnLockPath,
-    copiedPackageLockJsonPath,
-    copiedYarnLockPath,
-  );
+  const shouldRestore = shouldRestoreNpmPackages(packageLockJsonPath, yarnLockPath, copiedPackageLockJsonPath);
   if (shouldRestore === false) {
     compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buildCachePath, buildCacheManifestPath);
   } else {
@@ -74,6 +70,41 @@ if (isInstalledGlobally) {
       copiedYarnLockPath,
     );
   }
+}
+
+/**
+ * @param {string} yarnLockPath
+ * @returns string
+ */
+function getYarnChecksumFilePath(yarnLockPath) {
+  const yarnLockChecksumPath = path.join(path.dirname(yarnLockPath), 'tools', '.yarn.checksum');
+  return yarnLockChecksumPath;
+}
+
+/**
+ * @param {string} yarnLockPath
+ */
+function getYarnLockHash(yarnLockPath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(yarnLockPath)).digest('hex');
+}
+
+/**
+ * @param {string} yarnLockPath
+ * @returns boolean
+ */
+function getShouldUpdateLockFile(yarnLockPath) {
+  const yarnLockChecksumPath = getYarnChecksumFilePath(yarnLockPath);
+  const lockFileHash = getYarnLockHash(yarnLockPath);
+  let shouldUpdateLockFile = true;
+
+  if (!fs.existsSync(yarnLockChecksumPath)) {
+    fs.writeFileSync(yarnLockChecksumPath, lockFileHash);
+  } else {
+    const currentCachedHash = fs.readFileSync(yarnLockChecksumPath).toString();
+    shouldUpdateLockFile = lockFileHash !== currentCachedHash;
+  }
+
+  return shouldUpdateLockFile;
 }
 
 /**
@@ -112,6 +143,7 @@ function restoreNpmPackages(
     if (!fs.existsSync(yarnPath)) {
       yarnPath = 'yarn' + execExt;
     }
+
     const yarn = childProcess.spawn(yarnPath, [], {
       cwd: process.cwd(),
       stdio: 'inherit',
@@ -119,6 +151,11 @@ function restoreNpmPackages(
     yarn.on('exit', exitCode => {
       if (exitCode < 1) {
         cpSync(yarnLockPath, copiedYarnLockPath);
+
+        const yarnLockChecksumPath = getYarnChecksumFilePath(yarnLockPath);
+        const lockFileHash = getYarnLockHash(yarnLockPath);
+        fs.writeFileSync(yarnLockChecksumPath, lockFileHash);
+
         restartGarn();
       } else {
         process.exit(exitCode);
@@ -159,21 +196,16 @@ function cpSync(sourcePath, destinationPath) {
  * @param {string} packageLockJsonPath
  * @param {string} yarnLockPath
  * @param {string} copiedPackageLockJsonPath
- * @param {string} copiedYarnLockPath
  */
-function shouldRestoreNpmPackages(packageLockJsonPath, yarnLockPath, copiedPackageLockJsonPath, copiedYarnLockPath) {
+function shouldRestoreNpmPackages(packageLockJsonPath, yarnLockPath, copiedPackageLockJsonPath) {
   if (fs.existsSync(yarnLockPath)) {
-    if (!fs.existsSync(copiedYarnLockPath)) {
+    const hasNodeModulesFolder = fs.existsSync(path.join(yarnLockPath, '..', 'node_modules'));
+    let shouldUpdateLockFile = getShouldUpdateLockFile(yarnLockPath);
+
+    if (!hasNodeModulesFolder || shouldUpdateLockFile) {
       return 'yarn';
     } else {
-      const yarnLockStats = fs.statSync(yarnLockPath);
-      const copiedYarnLockStats = fs.statSync(copiedYarnLockPath);
-
-      if (yarnLockStats.mtime.getTime() !== copiedYarnLockStats.mtime.getTime()) {
-        return 'yarn';
-      } else {
-        return false;
-      }
+      return false;
     }
   } else if (fs.existsSync(packageLockJsonPath)) {
     if (!fs.existsSync(copiedPackageLockJsonPath)) {
@@ -255,14 +287,16 @@ function compileIfNeededAndRun(argv, rootPath, buildsystemPath, buildCache, buil
   } else {
     promise = garn.writeMetaDataIfNotExists(buildCachePath);
   }
-  promise.then(() => {
-    return garn.run().catch(e => {
-      console.error(e);
-      process.exit(1);
+  promise
+    .then(() => {
+      return garn.run().catch(e => {
+        console.error(e);
+        process.exit(1);
+      });
+    })
+    .catch(e => {
+      console.error('error writing garn metadata', e);
     });
-  }).catch(e => {
-    console.error('error writing garn metadata', e);
-  });
 }
 
 /**

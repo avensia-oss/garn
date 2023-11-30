@@ -11,6 +11,7 @@ import * as prompt from './prompt';
 import defaultTask from './default-task';
 import * as workspace from './workspace';
 import * as chalk from 'chalk';
+import { WorkspacePackage } from './workspace';
 
 type Workpace = typeof workspace;
 type ExternalWorkspace = Omit<Workpace, 'runGarnPlugin' | 'getGarnPluginMetaData'>;
@@ -654,9 +655,10 @@ export async function writeMetaData(buildCachePath: string) {
   fs.writeFile(path.join(buildCachePath, garnMetaFile), JSON.stringify(json, null, 2), () => null);
 }
 
-export async function getMetaData(workspacePath: string, isRetry = false): Promise<MetaData> {
-  const garnPath = path.join(workspacePath, 'node_modules', '.bin', garnExecutable());
-  const garnMetaFilePath = path.join(workspacePath, 'buildsystem', '.buildcache', garnMetaFile);
+export async function getMetaData(pkg: WorkspacePackage, isRetry = false): Promise<MetaData> {
+  const garnPath = pkg.garnPath;
+  const garnMetaFilePath = path.join(pkg.workspacePath, 'buildsystem', '.buildcache', garnMetaFile);
+
   if (fs.existsSync(garnMetaFilePath) && (isRetry || !('compile-buildsystem' in cliArgs.argv))) {
     try {
       return JSON.parse(fs.readFileSync(garnMetaFilePath).toString()) as MetaData;
@@ -670,8 +672,9 @@ export async function getMetaData(workspacePath: string, isRetry = false): Promi
     if ('compile-buildsystem' in cliArgs.argv) {
       args.push('--compile-buildsystem');
     }
-    await spawn(garnPath, args, { stdio: 'pipe', cwd: workspacePath });
-    return getMetaData(workspacePath, true);
+
+    await spawn(garnPath, args, { stdio: 'pipe', cwd: pkg.workspacePath });
+    return getMetaData(pkg, true);
   } else {
     throw new Error(`Garn at '${garnPath}' does not seem to produce a meta file when executed`);
   }
