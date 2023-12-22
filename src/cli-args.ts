@@ -130,7 +130,14 @@ export async function getChildArgs() {
   for (const flag of Object.keys(flags)) {
     const value = await flags[flag].get();
     if (value !== flags[flag].defaultValue) {
-      args.push(['--' + flags[flag].name, value === true ? undefined : value]);
+      const flagName = '--' + flags[flag].name;
+      let val = value === true ? undefined : value;
+
+      if (/^--no-.+/.test(flagName) && val === false) {
+        val = undefined;
+      }
+
+      args.push([flagName, val]);
     }
   }
   return args;
