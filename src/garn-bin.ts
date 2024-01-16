@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// @ts-check
 import * as fs from 'fs';
 import * as crypto from 'crypto';
 import * as os from 'os';
