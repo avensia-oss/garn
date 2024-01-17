@@ -10,7 +10,7 @@ import * as log from './logging';
 import * as prompt from './prompt';
 import defaultTask from './default-task';
 import * as workspace from './workspace';
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 import { WorkspacePackage } from './workspace';
 
 type Workpace = typeof workspace;

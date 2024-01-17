@@ -1,6 +1,6 @@
 import * as log from './logging';
-import * as chalk from 'chalk';
-import * as open from 'open';
+import chalk from 'chalk';
+import open from 'open';
 import { fetch } from 'cross-fetch';
 
 const GITHUB_ACCESS_TOKEN_ENV_NAME = 'Github__OAuthAccessToken';

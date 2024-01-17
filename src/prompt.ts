@@ -1,4 +1,4 @@
-import * as inquirer from 'inquirer';
+import inquirer from 'inquirer';
 import { flags } from './cli-args';
 
 export type PromptOptions = {

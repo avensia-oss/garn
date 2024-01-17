@@ -1,4 +1,4 @@
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 import * as git from './git';
 import * as log from './logging';
 import * as prompt from './prompt';
