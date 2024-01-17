@@ -1,5 +1,7 @@
 {
-  "editor.codeActionsOnSave": { "source.fixAll": true },
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  },
   "editor.formatOnSave": true,
   "files.eol": "\n",
   "prettier.withNodeModules": true,
