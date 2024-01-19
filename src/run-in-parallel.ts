@@ -55,15 +55,24 @@ function executePrograms(programs: ParallelProgram[], shouldProxy: boolean) {
         }
 
         if (shouldProxy) {
-          const argsToProxy = Object.keys(cliArgs.argv)
+          Object.keys(cliArgs.argv)
             .filter(key => {
-              if (key !== '_' && key !== '--' && key !== 'buildsystem-path') return true;
+              if (key !== '_' && key !== '--' && key !== 'buildsystem-path' && key !== 'proxyArgs') return true;
             })
-            .map(key => `--${key}=${cliArgs.argv[key]}`);
+            .forEach(flag => {
+              const flagName = `--${flag}`;
+              const value = cliArgs.argv[flag];
 
-          argsToProxy.forEach(arg => {
-            args.push(arg);
-          });
+              if (args.indexOf(flagName) === -1) {
+                let val = value === true ? undefined : value;
+
+                if (/^--no-.+/.test(flagName) && val === false) {
+                  val = undefined;
+                }
+
+                args.push(...[flagName, val]);
+              }
+            });
         }
 
         log.verbose(`Spawning '${program.program}${args.length === 0 ? '' : ' '}${args.join(' ')}'`);
