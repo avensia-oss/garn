@@ -13,7 +13,7 @@ export type ParallelProgram = {
   cwd?: string;
 };
 
-export async function runInParallel(programs: ParallelProgram[], isGarn: boolean = true, maxParallelism = Infinity) {
+export async function runInParallel(programs: ParallelProgram[], maxParallelism = Infinity, shouldProxy = false) {
   const batches: Array<Array<ParallelProgram>> = [];
   let i = 0;
   let currentBatch: ParallelProgram[] = [];
@@ -30,12 +30,12 @@ export async function runInParallel(programs: ParallelProgram[], isGarn: boolean
 
   let results: unknown[] = [];
   for (const batch of batches) {
-    results.push(await executePrograms(batch, isGarn));
+    results.push(await executePrograms(batch, shouldProxy));
   }
   return maxParallelism === Infinity ? results[0] : results;
 }
 
-function executePrograms(programs: ParallelProgram[], isGarn: boolean = true) {
+function executePrograms(programs: ParallelProgram[], shouldProxy: boolean) {
   let anyStreamIsOutputting = false;
   let unpauseStreams: Array<() => void> = [];
   return Promise.all(
@@ -44,15 +44,26 @@ function executePrograms(programs: ParallelProgram[], isGarn: boolean = true) {
         let thisStreamIsOutputting = false;
         const stdio: StdioOptions = [process.stdin, 'pipe', 'pipe'];
         const args = program.args;
-        if (isGarn) {
-          for (const [name, value] of await cliArgs.getChildArgs()) {
-            if (args.indexOf(name) === -1) {
-              args.push(name);
-              if (value !== undefined) {
-                args.push(value);
-              }
+
+        for (const [name, value] of await cliArgs.getChildArgs()) {
+          if (args.indexOf(name) === -1) {
+            args.push(name);
+            if (value !== undefined) {
+              args.push(value);
             }
           }
+        }
+
+        if (shouldProxy) {
+          const argsToProxy = Object.keys(cliArgs.argv)
+            .filter(key => {
+              if (key !== '_' && key !== '--' && key !== 'buildsystem-path') return true;
+            })
+            .map(key => `--${key}=${cliArgs.argv[key]}`);
+
+          argsToProxy.forEach(arg => {
+            args.push(arg);
+          });
         }
 
         log.verbose(`Spawning '${program.program}${args.length === 0 ? '' : ' '}${args.join(' ')}'`);

@@ -105,7 +105,8 @@ export async function runTask(taskName: string, packageName?: string) {
   log.log('');
 
   const maxParallelism = (await cliArgs.flags.parallel.get()) ? Infinity : 1;
-  return await runInParallel(programs, true, maxParallelism);
+  const proxyArgs = await cliArgs.flags.proxyArgs.get();
+  return await runInParallel(programs, maxParallelism, proxyArgs);
 }
 
 export async function runGarnPlugin() {

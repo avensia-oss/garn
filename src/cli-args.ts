@@ -42,6 +42,11 @@ export type Flags = { [name: string]: Flag<any, any> } & {
   /** Indicates the the command was executed from a ci/cd pipline
    * which can be used to add specific behavious to the build and pack commands**/
   buildServer: Flag<boolean>;
+
+  /**
+   * If we are proxying commands down to a new instance we have to pass down all the arguments from the parent
+   */
+  proxyArgs: Flag<boolean>;
 };
 
 export const flags: Flags = {
@@ -55,6 +60,7 @@ export const flags: Flags = {
   version: registerFlag<string, undefined>('version', 'string', undefined),
   asap: registerFlag<boolean>('asap', 'boolean', false),
   parallel: registerFlag<boolean>('parallel', 'boolean', false),
+  proxyArgs: registerFlag<boolean>('proxyArgs', 'boolean', false),
 };
 
 export function registerFlag<TValue, TDefaultValue = TValue>(
