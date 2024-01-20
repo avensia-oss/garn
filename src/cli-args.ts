@@ -73,6 +73,22 @@ export function registerFlag<TValue, TDefaultValue = TValue>(
     defaultValue,
     possibleValues,
     get: async (explicitDefaultValue?: TDefaultValue) => {
+      /**
+       * In windows you can set foo-bar=baz as environment variable
+       * This is not the case for *nix where valid env vars is only
+       * accepting [a-zA-Z_]{1,}[a-zA-Z0-9_]*
+       *
+       * So we convert the name from foo-bar to FOO_BAR.
+       */
+      const nameAsValidPosixStringUpperCase = name.toUpperCase().replace(/-/g, '_');
+      // In some recommendations they suggest using lowercase for representing application variables.
+      // So we support that as well, `foo_bar`.
+      const nameAsValidPosixStringLowerCase = name.toLocaleLowerCase().replace(/-/g, '_');
+      // Keep it backward compatible by grabbing `foo-bar` if it exists. Else try `FOO_BAR`
+      const envValue =
+        process.env[name] ||
+        process.env[nameAsValidPosixStringLowerCase] ||
+        process.env[nameAsValidPosixStringUpperCase];
       const explicitDefaultValueIsExplicitlyUndefined = explicitDefaultValue === undefined && arguments.length >= 1;
 
       if (currentValueSet) {
@@ -83,8 +99,8 @@ export function registerFlag<TValue, TDefaultValue = TValue>(
       let value: TValue | TDefaultValue | undefined;
       if (currentWorkspace && process.env[currentWorkspace.name + '-' + name]) {
         value = valueOf(process.env[currentWorkspace.name + '-' + name]!, type);
-      } else if (process.env[name]) {
-        value = valueOf(process.env[name]!, type);
+      } else if (envValue) {
+        value = valueOf(envValue!, type);
       } else if (defaultValue !== undefined || hasUndefinedAsExplicitDefault) {
         value = typeof defaultValue === 'function' ? (defaultValue as () => TDefaultValue)() : defaultValue;
         if (isPromise(value)) {
