@@ -83,7 +83,7 @@ export function registerFlag<TValue, TDefaultValue = TValue>(
       const nameAsValidPosixStringUpperCase = name.toUpperCase().replace(/-/g, '_');
       // In some recommendations they suggest using lowercase for representing application variables.
       // So we support that as well, `foo_bar`.
-      const nameAsValidPosixStringLowerCase = name.toLocaleLowerCase().replace(/-/g, '_');
+      const nameAsValidPosixStringLowerCase = name.toLowerCase().replace(/-/g, '_');
       // Keep it backward compatible by grabbing `foo-bar` if it exists. Else try `FOO_BAR`
       const envValue =
         process.env[name] ||
