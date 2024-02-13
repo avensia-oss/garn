@@ -30,6 +30,7 @@ export * as docker from './docker';
 export * as exec from './exec';
 export * as dotnet from './dotnet';
 export * as yarn from './yarn';
+export * as node from './node';
 export * as pnpm from './pnpm';
 export * as git from './git';
 export * as github from './github';
