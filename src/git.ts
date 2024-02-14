@@ -17,6 +17,10 @@ export async function revParse(name: string, cwd?: string) {
   return git(['rev-parse', name], cwd);
 }
 
+export function revParseSync(name: string = 'HEAD', cwd?: string) {
+  return gitSync(['rev-parse', name], cwd);
+}
+
 export async function commitCountBetween(from: string, to: string, cwd?: string) {
   return git(['rev-list', '--count', '^' + from, to], cwd);
 }
@@ -61,6 +65,11 @@ export async function getMergeBase(branch1: string, branch2: string, cwd?: strin
 
 export async function getTags(name: string = 'HEAD', cwd?: string) {
   const tags = await git(['tag', '--points-at', name], cwd);
+  return tags.split('\n').map(s => s.trim());
+}
+
+export function getTagsSync(name: string = 'HEAD', cwd?: string) {
+  const tags = gitSync(['tag', '--points-at', name], cwd);
   return tags.split('\n').map(s => s.trim());
 }
 
