@@ -6,6 +6,7 @@ import * as childProcess from 'child_process';
 import * as path from 'path';
 import * as minimist from 'minimist';
 import * as isInstalledGlobally from 'is-installed-globally';
+import * as ts from 'typescript';
 import type * as typescript from 'typescript';
 
 const execExt = os.platform() === 'win32' ? '.cmd' : '';
@@ -516,8 +517,6 @@ function anyFileInManifestHasChanged(buildCacheManifestPath: string, buildsystem
  * @returns
  */
 function createPathRewriteTransformer(program: typescript.Program, paths: string[]) {
-  const ts: typeof typescript = require('typescript');
-
   const rewrittenPaths = paths.map(path => new RegExp('^' + escapeRegExp(path).replace('\\*', '.')));
   /**
    *
@@ -531,6 +530,23 @@ function createPathRewriteTransformer(program: typescript.Program, paths: string
       }
     }
     return false;
+  }
+
+  /**
+   * Checks if identifier is require keyword, supports TS4 and TS5
+   * @param {typescript.Identifier} identifier
+   * @returns boolean
+   */
+  function isRequireKeyword(identifier: typescript.Identifier): boolean {
+    // TypeScript 5 and later: Use identifierToKeywordKind if available.
+    const requireKeyword = ts.SyntaxKind.RequireKeyword;
+    if ('identifierToKeywordKind' in ts) {
+      const keywordKind = ts.identifierToKeywordKind(identifier);
+      return keywordKind === requireKeyword;
+    }
+
+    // TypeScript 4 and earlier: Fallback to using originalKeywordKind if identifierToKeywordKind is not available.
+    return identifier.originalKeywordKind === requireKeyword;
   }
 
   // Since files are taken from their source and placed inside the current package
@@ -585,8 +601,10 @@ function createPathRewriteTransformer(program: typescript.Program, paths: string
         ts.isCallExpression(node) &&
         node.arguments.length === 1 &&
         ts.isStringLiteral(node.arguments[0]) &&
-        (node.expression.kind === ts.SyntaxKind.ImportKeyword || // import
-          (ts.isIdentifier(node.expression) && node.expression.originalKeywordKind === ts.SyntaxKind.RequireKeyword)) // require
+        // import
+        (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+          // require
+          (ts.isIdentifier(node.expression) && isRequireKeyword(node.expression)))
       ) {
         const importPath = node.arguments[0];
         const importSymbol = typeChecker.getSymbolAtLocation(importPath);
@@ -680,7 +698,6 @@ function createPathRewriteTransformer(program: typescript.Program, paths: string
 
             return context.factory.updateImportDeclaration(
               node,
-              node.decorators,
               node.modifiers,
               node.importClause,
               context.factory.createStringLiteral(relativeImport),
@@ -693,7 +710,6 @@ function createPathRewriteTransformer(program: typescript.Program, paths: string
         if (localNodeModules) {
           return context.factory.updateImportDeclaration(
             node,
-            node.decorators,
             node.modifiers,
             node.importClause,
             context.factory.createStringLiteral(
@@ -732,7 +748,6 @@ function createPathRewriteTransformer(program: typescript.Program, paths: string
 
           return context.factory.updateExportDeclaration(
             node,
-            node.decorators,
             node.modifiers,
             node.isTypeOnly,
             node.exportClause,
