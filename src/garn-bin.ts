@@ -6,7 +6,6 @@ import * as childProcess from 'child_process';
 import * as path from 'path';
 import * as minimist from 'minimist';
 import * as isInstalledGlobally from 'is-installed-globally';
-import * as ts from 'typescript';
 import type * as typescript from 'typescript';
 
 const execExt = os.platform() === 'win32' ? '.cmd' : '';
@@ -517,6 +516,8 @@ function anyFileInManifestHasChanged(buildCacheManifestPath: string, buildsystem
  * @returns
  */
 function createPathRewriteTransformer(program: typescript.Program, paths: string[]) {
+  const ts: typeof typescript = require('typescript');
+
   const rewrittenPaths = paths.map(path => new RegExp('^' + escapeRegExp(path).replace('\\*', '.')));
   /**
    *
