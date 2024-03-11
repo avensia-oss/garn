@@ -260,7 +260,7 @@ export async function nugetPush(binPath: string, packageName: string, options?: 
 export async function solutionPath(targetPath?: string) {
   const glob = await import('glob');
   const projPath = targetPath ?? projectPath;
-  const result = glob.sync('*.sln', { cwd: projPath });
+  const result = glob.sync('*.sln', { cwd: projPath, posix: true });
   if (!result[0]) {
     return undefined;
   }

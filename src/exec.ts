@@ -118,7 +118,9 @@ export function isInPath(command: string) {
     } else {
       const res = childProcess.spawnSync('whereis', [command]);
       if (res.error && (res.error as SpawnSyncError).code === 'ENOENT') {
-       throw new Error(`Error trying to locate binary for "${command}". Make sure that 'whereis' is installed on your system.`);
+        throw new Error(
+          `Error trying to locate binary for "${command}". Make sure that 'whereis' is installed on your system.`,
+        );
       }
       if (res.status !== 0) {
         return false;

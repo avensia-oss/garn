@@ -259,13 +259,11 @@ export function list() {
 function expandWorkspaces(packageJsonPath: string) {
   const packageJson = JSON.parse(workspace.readFileSync(packageJsonPath).toString());
   const projectRoot = path.dirname(packageJsonPath);
-
   if (Array.isArray(packageJson.workspaces) || Array.isArray(packageJson.workspaces?.packages)) {
     const workspaces: WorkspacePackage[] = [];
-
     for (const workspace of packageJson.workspaces.packages ?? packageJson.workspaces) {
       // Find each workspace that have a dependency on garn.
-      const expanded = glob.sync(path.join(workspace, 'buildsystem', 'tsconfig.json'), {
+      const expanded = glob.sync(path.resolve(workspace, 'buildsystem', 'tsconfig.json'), {
         cwd: projectRoot,
       });
 

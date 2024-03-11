@@ -119,9 +119,9 @@ export async function promptForAllValues() {
     });
   }
   const answers = await inquirer.prompt(questions);
-  for (const variableName of Object.keys(answers)) {
-    process.env[variableName] = answers[variableName] as string;
-    saveEnvVariable(variableName, answers[variableName]);
+  for (const variableName of Object.keys(answers as string[])) {
+    process.env[variableName] = (answers as any)[variableName] as string;
+    saveEnvVariable(variableName, (answers as any)[variableName]);
   }
 }
 
@@ -171,7 +171,7 @@ function create<TValue, TDefaultValue>(config: Variable<TValue, TDefaultValue | 
             default: config.defaultValue,
             validate: config.validate,
           });
-          value = config.parser(answer[config.name] as string);
+          value = config.parser((answer as any)[config.name] as string);
           log.log(`Saving your answer in ${envVariablesFile} so we don't have to bother you again...`);
           saveEnvVariable(config.name, value);
         }

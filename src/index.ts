@@ -2,8 +2,6 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { spawn } from './exec';
-import * as stringSimilarity from 'string-similarity';
-
 import * as cliArgs from './cli-args';
 import * as variables from './variables';
 import * as log from './logging';
@@ -12,6 +10,7 @@ import defaultTask from './default-task';
 import * as workspace from './workspace';
 import * as chalk from 'chalk';
 import { WorkspacePackage } from './workspace';
+import { findBestMatch } from './string-similarity';
 
 type Workpace = typeof workspace;
 type ExternalWorkspace = Omit<Workpace, 'runGarnPlugin' | 'getGarnPluginMetaData'>;
@@ -583,8 +582,7 @@ async function validateRequestedTask(taskName: string): Promise<string | undefin
 
   if (taskNames.indexOf(taskName) === -1) {
     log.error("Unknown task '" + taskName + "'");
-    const matches = stringSimilarity
-      .findBestMatch(taskName, externalTaskNames)
+    const matches = findBestMatch(taskName, externalTaskNames)
       .ratings.filter(t => t.rating > 0.12)
       .sort((a, b) => b.rating - a.rating)
       .slice(0, 5);
