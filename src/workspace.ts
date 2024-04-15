@@ -50,8 +50,7 @@ export async function runTask(taskName: string, packageName?: string) {
         packagesToRunTaskIn = [cliPackage];
       } else {
         await log.error(
-          `No package with the name '${
-            cliVersion.packageName
+          `No package with the name '${cliVersion.packageName
           }' could be found in this workspace. Existing packages are: ${packages.map(p => p.name).join(', ')}`,
         );
         return exit();
@@ -184,7 +183,9 @@ export function current() {
   if (currentWorkspace !== undefined) {
     return currentWorkspace === null ? undefined : currentWorkspace;
   }
+
   let currentPath = path.join(cliArgs.buildsystemPath, '..');
+
   while (true) {
     const packageJsonPath = path.join(currentPath, 'package.json');
     if (existsSync(packageJsonPath)) {
@@ -265,7 +266,8 @@ function expandWorkspaces(packageJsonPath: string) {
 
     for (const workspace of packageJson.workspaces.packages ?? packageJson.workspaces) {
       // Find each workspace that have a dependency on garn.
-      const expanded = glob.sync(path.join(workspace, 'buildsystem', 'tsconfig.json'), {
+      // Always use '/' even on windows, because node-glob wants it that way. Read more here: https://github.com/isaacs/node-glob?tab=readme-ov-file#windows
+      const expanded = glob.sync([workspace, 'buildsystem', 'tsconfig.json'].join('/'), {
         cwd: projectRoot,
       });
 

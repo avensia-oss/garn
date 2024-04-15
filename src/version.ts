@@ -50,11 +50,11 @@ export async function currentVersion(): Promise<Version> {
     const currentPackageName = workspace.current()?.name;
     if (cliVersion.packageName && cliVersion.packageName !== currentPackageName) {
       throw new Error(
-        `The cli flag --version was set to '${cliVersionString}' but that does not match the current package which is '${
-          currentPackageName ? currentPackageName : '(none)'
-        }'`,
+        `The cli flag --version was set to '${cliVersionString}' but that does not match the current package which is '${currentPackageName ? currentPackageName : '(none)'
+        } '`,
       );
     }
+
     // If the version is passed as `--version v1.0.0` it means that it applies to all workspace packages and we
     // inject the current package name. This allows you to do:
     // $ garn workspace publish --version=v1.0.0
