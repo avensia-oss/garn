@@ -391,8 +391,8 @@ function printDiagnostics(allDiagnostics: typescript.Diagnostic[], buildsystemPa
         chalk.green(
           path.relative(projectPath, diagnostic.file.fileName) + '(' + line + 1 + ',' + character + 1 + '):',
         ) +
-          ' ' +
-          message,
+        ' ' +
+        message,
       );
       console.log();
     } else {
@@ -421,7 +421,7 @@ function buildCompilationManifest(dirInBuildCache: string, buildsystemPath: stri
   let files: string[] = [];
   try {
     files = fs.readdirSync(dirInBuildCache);
-  } catch (e) {}
+  } catch (e) { }
   for (const file of files) {
     const fullPath = path.join(dirInBuildCache, file);
     if (!fullPath.endsWith('.map') && !file.startsWith('.')) {
@@ -586,7 +586,7 @@ function createPathRewriteTransformer(program: typescript.Program, paths: string
         node.arguments.length === 1 &&
         ts.isStringLiteral(node.arguments[0]) &&
         (node.expression.kind === ts.SyntaxKind.ImportKeyword || // import
-          (ts.isIdentifier(node.expression) && node.expression.originalKeywordKind === ts.SyntaxKind.RequireKeyword)) // require
+          (ts.isIdentifier(node.expression) && ts.identifierToKeywordKind(node.expression))) // require
       ) {
         const importPath = node.arguments[0];
         const importSymbol = typeChecker.getSymbolAtLocation(importPath);
@@ -680,7 +680,6 @@ function createPathRewriteTransformer(program: typescript.Program, paths: string
 
             return context.factory.updateImportDeclaration(
               node,
-              node.decorators,
               node.modifiers,
               node.importClause,
               context.factory.createStringLiteral(relativeImport),
@@ -693,7 +692,6 @@ function createPathRewriteTransformer(program: typescript.Program, paths: string
         if (localNodeModules) {
           return context.factory.updateImportDeclaration(
             node,
-            node.decorators,
             node.modifiers,
             node.importClause,
             context.factory.createStringLiteral(
@@ -732,7 +730,6 @@ function createPathRewriteTransformer(program: typescript.Program, paths: string
 
           return context.factory.updateExportDeclaration(
             node,
-            node.decorators,
             node.modifiers,
             node.isTypeOnly,
             node.exportClause,

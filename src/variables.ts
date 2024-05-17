@@ -118,7 +118,7 @@ export async function promptForAllValues() {
       validate: variable.validate,
     });
   }
-  const answers = await inquirer.prompt(questions);
+  const answers: any = await inquirer.prompt(questions);
   for (const variableName of Object.keys(answers)) {
     process.env[variableName] = answers[variableName] as string;
     saveEnvVariable(variableName, answers[variableName]);
@@ -164,7 +164,7 @@ function create<TValue, TDefaultValue>(config: Variable<TValue, TDefaultValue | 
           }
           value = defaultValue;
         } else {
-          const answer = await inquirer.prompt({
+          const answer: any = await inquirer.prompt({
             name: config.name,
             type: 'input',
             message: config.question,
