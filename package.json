@@ -1,6 +1,6 @@
 {
   "name": "@avensia-oss/garn",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "dist/index.js",
   "repository": "https://github.com/avensia-oss/garn",
   "author": "Anders Ekdahl <anders.ekdahl@avensia.com>",
@@ -41,7 +41,7 @@
     "@types/inquirer": "^6.5.0",
     "@types/keytar": "^4.4.2",
     "@types/minimist": "^1.2.5",
-    "@types/node": "20",
+    "@types/node": "^22",
     "@types/readline-sync": "^1.4.3",
     "@types/string-similarity": "^3.0.0",
     "@types/through": "^0.0.30",
