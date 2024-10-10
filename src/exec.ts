@@ -27,7 +27,10 @@ export function spawnSync(
     }
   }
 
-  const processResult = childProcess.spawnSync(command, args, options);
+  const processResult = childProcess.spawnSync(command, args, {
+    ...(options ?? {}),
+    shell: true,
+  });
 
   return {
     stdout: processResult.stdout.toString('utf8'),
@@ -59,7 +62,7 @@ export async function spawn(
     }
 
     log.verbose(`Spawning '${command}' with args '${args.join(' ')}'`);
-    const spawnedProcess = childProcess.spawn(command, args, options);
+    const spawnedProcess = childProcess.spawn(command, args, { ...(options ?? {}), shell: true });
     const outChunks: any[] = [];
     const outListener = (chunk: any) => outChunks.push(chunk);
     if (spawnedProcess.stdout) {
@@ -118,7 +121,9 @@ export function isInPath(command: string) {
     } else {
       const res = childProcess.spawnSync('whereis', [command]);
       if (res.error && (res.error as SpawnSyncError).code === 'ENOENT') {
-       throw new Error(`Error trying to locate binary for "${command}". Make sure that 'whereis' is installed on your system.`);
+        throw new Error(
+          `Error trying to locate binary for "${command}". Make sure that 'whereis' is installed on your system.`,
+        );
       }
       if (res.status !== 0) {
         return false;
