@@ -8,6 +8,7 @@ export async function runNode(args: string[] = [], options?: childProcess.SpawnO
   const executable = os.platform() === 'win32' ? 'node.cmd' : 'node';
   return await exec.spawn(path.join(projectPath, executable), args, {
     cwd: projectPath,
+    shell: true,
     ...(options ?? {}),
   });
 }

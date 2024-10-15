@@ -16,6 +16,7 @@ if (isInstalledGlobally) {
     const childGarn = childProcess.spawn(localGarn, process.argv.slice(2), {
       cwd: process.cwd(),
       stdio: 'inherit',
+      shell: true,
     });
     childGarn.on('exit', (exitCode: number) => process.exit(exitCode));
   } else {
@@ -131,6 +132,7 @@ function restoreNpmPackages(
     const garn = childProcess.spawn(garnPath, process.argv.slice(2), {
       cwd: process.cwd(),
       stdio: 'inherit',
+      shell: true,
     });
     garn.on('exit', (exitCode: number) => process.exit(exitCode));
   };
@@ -148,6 +150,7 @@ function restoreNpmPackages(
     const yarn = childProcess.spawn(yarnPath, [], {
       cwd: process.cwd(),
       stdio: 'inherit',
+      shell: true,
     });
     yarn.on('exit', (exitCode: number) => {
       if (exitCode < 1) {
@@ -170,6 +173,7 @@ function restoreNpmPackages(
     const npm = childProcess.spawn(npmPath, ['install'], {
       cwd: process.cwd(),
       stdio: 'inherit',
+      shell: true,
     });
     npm.on('exit', (exitCode: number) => {
       if (exitCode < 1) {
