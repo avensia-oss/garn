@@ -75,6 +75,7 @@ export async function runBin(bin: string, args: string[] = []) {
   const executable = os.platform() === 'win32' ? executablePath + '.cmd' : executablePath;
   return await exec.spawn(executable, args, {
     cwd: projectPath,
+    shell: true,
   });
 }
 
@@ -82,6 +83,7 @@ async function runYarn(args: string[] = [], options?: childProcess.SpawnOptions)
   const executable = os.platform() === 'win32' ? 'yarn.cmd' : 'yarn';
   return await exec.spawn(path.join(projectPath, executable), args, {
     cwd: projectPath,
+    shell: true,
     ...(options ?? {}),
   });
 }

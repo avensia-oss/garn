@@ -16,6 +16,7 @@ export async function runPnpm(args: string[] = [], options?: childProcess.SpawnO
   const executable = os.platform() === 'win32' ? 'pnpm.cmd' : 'pnpm';
   return await exec.spawn(path.join(projectPath, executable), args, {
     cwd: projectPath,
+    shell: true,
     ...(options ?? {}),
   });
 }
