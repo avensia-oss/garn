@@ -56,7 +56,7 @@ function executePrograms(programs: ParallelProgram[], isGarn: boolean = true) {
         }
 
         log.verbose(`Spawning '${program.program}${args.length === 0 ? '' : ' '}${args.join(' ')}'`);
-        const command = spawn(program.program, args, { stdio, ...(program.cwd ? { cwd: program.cwd } : {}) });
+        const command = spawn(program.program, args, { shell: true, stdio, ...(program.cwd ? { cwd: program.cwd } : {}) });
 
         const outThrough = through(
           function (this: any, data) {
