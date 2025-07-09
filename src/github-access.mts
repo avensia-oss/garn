@@ -1,5 +1,5 @@
-import * as log from './logging';
-import * as chalk from 'chalk';
+import * as log from './logging.mts';
+import chalk from 'chalk';
 import * as open from 'open';
 import { fetch } from 'cross-fetch';
 
@@ -24,18 +24,35 @@ export class GithubAccess {
   private static OAuthClientId = '825e1cb8ef39aa07f127';
 
   public static async getAccessToken() {
-    const keytar = await import('keytar');
-    const token = await keytar.findPassword(GITHUB_ACCESS_TOKEN_ENV_NAME);
-    return token;
+    try {
+      const keytar = await import('keytar');
+      const token = await keytar.getPassword(GITHUB_ACCESS_TOKEN_ENV_NAME, GithubAccess.OAuthClientId);
+      return token;
+    } catch (error) {
+      log.log(chalk.yellow('⚠️  keytar not available or failed to get GitHub access token:', error));
+      return null;
+    }
   }
 
   public static async setAccessToken(token: string) {
-    const keytar = await import('keytar');
-    return await keytar.setPassword(GITHUB_ACCESS_TOKEN_ENV_NAME, GithubAccess.OAuthClientId, token);
+    try {
+      const keytar = await import('keytar');
+      return await keytar.setPassword(GITHUB_ACCESS_TOKEN_ENV_NAME, GithubAccess.OAuthClientId, token);
+    } catch (error) {
+      log.log(chalk.yellow('⚠️  keytar not available or failed to save GitHub access token:', error));
+      return false;
+    }
   }
 
   public static async hasCredentials(): Promise<boolean> {
-    return !!(await GithubAccess.getAccessToken());
+    try {
+      const keytar = await import('keytar');
+      const token = await keytar.getPassword(GITHUB_ACCESS_TOKEN_ENV_NAME, GithubAccess.OAuthClientId);
+      return !!token;
+    } catch (error) {
+      log.log(chalk.yellow('⚠️  keytar not available, GitHub authentication will be limited:', error));
+      return false;
+    }
   }
 
   public static async validateCredentials() {
@@ -73,7 +90,7 @@ export class GithubAccess {
         log.log('');
 
         // Open browser tab which prompts user to enter the device code and then authorize the garn app.
-        open('https://github.com/login/device');
+        open.default('https://github.com/login/device');
 
         const pollCaptureUrl = new URL('https://github.com/login/oauth/access_token');
         pollCaptureUrl.searchParams.set('client_id', GithubAccess.OAuthClientId);

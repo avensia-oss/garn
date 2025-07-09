@@ -1,12 +1,9 @@
 import * as minimist from 'minimist';
-import * as log from './logging';
+import * as log from './logging.mjs';
 
-export const argv = minimist(process.argv.slice(2), {
+export const argv = minimist.default(process.argv.slice(2), {
   '--': true,
 });
-
-export const buildsystemPathArgName = 'buildsystem-path';
-export const buildsystemPath = argv[buildsystemPathArgName];
 
 export const testMode = 'test-mode' in argv;
 
@@ -94,8 +91,9 @@ export function registerFlag<TValue, TDefaultValue = TValue>(
       if (currentValueSet) {
         return currentValue;
       }
-      const workspace = await import('./workspace');
+      const workspace = await import('./workspace.mjs');
       const currentWorkspace = workspace.current();
+
       let value: TValue | TDefaultValue | undefined;
       if (currentWorkspace && process.env[currentWorkspace.name + '-' + name]) {
         value = valueOf(process.env[currentWorkspace.name + '-' + name]!, type);
@@ -121,6 +119,7 @@ export function registerFlag<TValue, TDefaultValue = TValue>(
         }
         throw new Error(`Cannot find a value for the flag '${name}'`);
       }
+
       return value as TValue | TDefaultValue;
     },
     set: (value: TValue) => {
@@ -129,9 +128,6 @@ export function registerFlag<TValue, TDefaultValue = TValue>(
     },
   };
 
-  if (flags) {
-    flags[name] = flag;
-  }
   return flag;
 }
 
@@ -140,9 +136,6 @@ export const taskName = argv._[0] || 'default';
 export async function getChildArgs() {
   const args: Array<[string, string?]> = [];
   args.push(['--child-garn']);
-  if ('compile-buildsystem' in argv) {
-    args.push(['--compile-buildsystem']);
-  }
   for (const flag of Object.keys(flags)) {
     const value = await flags[flag].get();
     if (value !== flags[flag].defaultValue) {

@@ -1,5 +1,5 @@
-import * as inquirer from 'inquirer';
-import { flags } from './cli-args';
+import inquirer from 'inquirer';
+import { flags } from './cli-args.mjs';
 
 export type PromptOptions = {
   pattern: RegExp;

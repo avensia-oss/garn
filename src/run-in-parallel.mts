@@ -1,10 +1,10 @@
-import * as path from 'path';
-import { spawn, StdioOptions } from 'child_process';
-import * as through from 'through';
+import path from 'path';
+import { spawn, type StdioOptions } from 'child_process';
+import through from 'through';
 import * as stream from 'stream';
 
-import * as log from './logging';
-import * as cliArgs from './cli-args';
+import * as log from './logging.mjs';
+import * as cliArgs from './cli-args.mjs';
 
 export type ParallelProgram = {
   program: string;
@@ -56,7 +56,11 @@ function executePrograms(programs: ParallelProgram[], isGarn: boolean = true) {
         }
 
         log.verbose(`Spawning '${program.program}${args.length === 0 ? '' : ' '}${args.join(' ')}'`);
-        const command = spawn(program.program, args, { stdio, ...(program.cwd ? { cwd: program.cwd } : {}) });
+        const command = spawn(program.program, args, {
+          shell: true,
+          stdio,
+          ...(program.cwd ? { cwd: program.cwd } : {}),
+        });
 
         const outThrough = through(
           function (this: any, data) {

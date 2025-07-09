@@ -1,9 +1,9 @@
-import * as chalk from 'chalk';
-import * as git from './git';
-import * as log from './logging';
-import * as prompt from './prompt';
-import * as version from './version';
-import * as workspace from './workspace';
+import chalk from 'chalk';
+import * as git from './git.mjs';
+import * as log from './logging.mjs';
+import * as prompt from './prompt.mjs';
+import * as version from './version.mjs';
+import * as workspace from './workspace.mjs';
 
 const defaultReleaseBranch = 'master';
 const defaultPrereleaseTag = 'rc';

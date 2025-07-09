@@ -1,60 +1,47 @@
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import { spawn } from './exec';
+import os from 'os';
+import path from 'path';
+import { spawn } from './exec.mjs';
 import * as stringSimilarity from 'string-similarity';
 
-import * as cliArgs from './cli-args';
-import * as variables from './variables';
-import * as log from './logging';
-import * as prompt from './prompt';
-import defaultTask from './default-task';
-import * as workspace from './workspace';
-import * as chalk from 'chalk';
-import { WorkspacePackage } from './workspace';
+import * as cliArgs from './cli-args.mjs';
+import * as log from './logging.mjs';
+import * as prompt from './prompt.mjs';
+import defaultTask from './default-task.mjs';
+import * as workspace from './workspace.mjs';
+import chalk from 'chalk';
 
 type Workpace = typeof workspace;
-type ExternalWorkspace = Omit<Workpace, 'runGarnPlugin' | 'getGarnPluginMetaData'>;
+type ExternalWorkspace = Omit<Workpace, 'runWorkspaceTasks'>;
 
 const exportedWorkspace: ExternalWorkspace = workspace;
 
 export { log };
-export { variables };
 export { exportedWorkspace as workspaces };
 export { prompt };
 export { cliArgs };
-export { isInPath } from './exec';
-export * as version from './version';
-export * as release from './release';
-export * as docker from './docker';
-export * as exec from './exec';
-export * as dotnet from './dotnet';
-export * as yarn from './yarn';
-export * as node from './node';
-export * as pnpm from './pnpm';
-export * as git from './git';
-export * as github from './github';
-export * as changelog from './change-log';
-export * as typescript from './typescript';
-export * from './github-access';
+export { isInPath } from './exec.mjs';
+export * as version from './version.mjs';
+export * as release from './release.mjs';
+export * as docker from './docker.mjs';
+export * as exec from './exec.mjs';
+export * as dotnet from './dotnet.mjs';
+export * as yarn from './yarn.mjs';
+export * as node from './node.mjs';
+export * as pnpm from './pnpm.mjs';
+export * as git from './git.mjs';
+export * as github from './github.mjs';
+export * as changelog from './change-log.mjs';
+export * as typescript from './typescript.mjs';
+export * from './github-access.mjs';
+export * as variables from './variables.mjs';
 
-const flags = cliArgs.flags;
-export const projectPath = path.join(cliArgs.buildsystemPath, '..');
-
-export type MetaData = {
-  tasks: { [taskName: string]: string[] };
-  plugins: { [name: string]: PluginMetaData };
-  flags: { [name: string]: string[] };
-};
-export type PluginMetaData = { [name: string]: string[] | PluginMetaData };
-export type Plugin = {
-  runGarnPlugin: () => Promise<unknown>;
-  getGarnPluginMetaData: () => Promise<PluginMetaData | undefined>;
-};
-
-const plugins: { [pluginName: string]: Plugin } = {};
-
-plugins['workspace'] = workspace;
+let projectPath: string | undefined = undefined;
+export function setProjectPath(path: string) {
+  projectPath = path;
+}
+export function getProjectPath() {
+  return projectPath ?? (projectPath = process.cwd());
+}
 
 async function processExitOnError(e?: Error): Promise<never> {
   if (!cliArgs.testMode) {
@@ -400,7 +387,16 @@ export async function spawnTask(taskName: string, taskGroup?: string) {
     }
   }
   log.verbose(`Spawning 'garn ${taskName}'`);
-  return await spawn(path.join(projectPath, garnExecutable()), args);
+
+  // Check if we're in a workspace context and use the workspace's garn path
+  const workspace = await import('./workspace.mjs');
+  const currentWorkspace = workspace.current();
+
+  const garnPath = currentWorkspace?.garnPath ?? path.join(getProjectPath(), garnExecutable());
+  if (currentWorkspace && currentWorkspace?.garnPath !== getProjectPath()) {
+    args.unshift('workspace=' + currentWorkspace?.name);
+  }
+  return await spawn(garnPath, args);
 }
 
 export async function runTask(taskName: string, taskGroup?: string, dependantTaskResult?: any) {
@@ -521,7 +517,7 @@ export function garnExecutable() {
   return garn;
 }
 
-export async function run() {
+export async function run(taskName: string) {
   if ((await cliArgs.flags.asap.get()) && !('child-garn' in cliArgs.argv)) {
     log.log(
       chalk.yellow(
@@ -531,12 +527,7 @@ export async function run() {
     log.log();
   }
 
-  if (cliArgs.taskName in plugins) {
-    await plugins[cliArgs.taskName].runGarnPlugin();
-    return;
-  }
-
-  const validatedTaskName = await validateRequestedTask(cliArgs.taskName);
+  const validatedTaskName = await validateRequestedTask(taskName);
   if (validatedTaskName === undefined) {
     return;
   }
@@ -563,7 +554,9 @@ export async function run() {
       await callBuildProgressListeners(taskDescriptors, onSuccesses, taskDescriptors);
       await callBuildProgressListeners(taskDescriptors, onDones, taskDescriptors);
       const stopTime = new Date().valueOf();
-      log.log("Build time (task '" + validatedTaskName + "'):", timeDifference(startTime, stopTime));
+      if (validatedTaskName !== 'workspace') {
+        log.log("Build time (task '" + validatedTaskName + "'):", timeDifference(startTime, stopTime));
+      }
     }
   } catch (err) {
     if (!failedTaskDescriptor) {
@@ -610,75 +603,8 @@ async function validateRequestedTask(taskName: string): Promise<string | undefin
   return taskName;
 }
 
-const garnMetaFile = '.garn-meta.json';
-
-export async function writeMetaDataIfNotExists(buildCachePath: string) {
-  if (!fs.existsSync(path.join(buildCachePath, garnMetaFile))) {
-    return await writeMetaData(buildCachePath);
-  }
-}
-
-export async function writeMetaData(buildCachePath: string) {
-  const taskNames = Object.keys(tasks).filter(name => name !== 'default' && !tasks[name].isInternalTask);
-  const cliFlags: { [name: string]: string[] } = {};
-  for (const flag of Object.keys(flags)) {
-    cliFlags['--' + flags[flag].name] = flags[flag].possibleValues ?? [];
-  }
-  cliFlags['--compile-buildsystem'] = [];
-  const pluginsMeta: { [name: string]: PluginMetaData } = {};
-  for (const pluginName of Object.keys(plugins)) {
-    const meta = await plugins[pluginName].getGarnPluginMetaData();
-    if (meta) {
-      pluginsMeta[pluginName] = meta;
-    }
-  }
-  const taskArgs: { [taskName: string]: string[] } = {};
-  for (const taskName of taskNames) {
-    const task = tasks[taskName];
-    if (task.subArgs) {
-      taskArgs[taskName] = task.subArgs!;
-    } else if (task.subArgsJsonFile && fs.existsSync(task.subArgsJsonFile)) {
-      try {
-        taskArgs[taskName] = JSON.parse(fs.readFileSync(task.subArgsJsonFile).toString());
-      } catch (e) {
-        log.error('Error reading JSON file (' + task.subArgsJsonFile + ') for task sub arguments:', e);
-        taskArgs[taskName] = [];
-      }
-    } else {
-      taskArgs[taskName] = [];
-    }
-  }
-  const json: MetaData = {
-    tasks: taskArgs,
-    flags: cliFlags,
-    plugins: pluginsMeta,
-  };
-  fs.writeFile(path.join(buildCachePath, garnMetaFile), JSON.stringify(json, null, 2), () => null);
-}
-
-export async function getMetaData(pkg: WorkspacePackage, isRetry = false): Promise<MetaData> {
-  const garnPath = pkg.garnPath;
-  const garnMetaFilePath = path.join(pkg.workspacePath, 'buildsystem', '.buildcache', garnMetaFile);
-
-  if (fs.existsSync(garnMetaFilePath) && (isRetry || !('compile-buildsystem' in cliArgs.argv))) {
-    try {
-      return JSON.parse(fs.readFileSync(garnMetaFilePath).toString()) as MetaData;
-    } catch (e) {
-      fs.unlinkSync(garnMetaFilePath);
-      log.verbose(e);
-    }
-  }
-  if (!isRetry) {
-    const args: string[] = [];
-    if ('compile-buildsystem' in cliArgs.argv) {
-      args.push('--compile-buildsystem');
-    }
-
-    await spawn(garnPath, args, { stdio: 'pipe', cwd: pkg.workspacePath });
-    return getMetaData(pkg, true);
-  } else {
-    throw new Error(`Garn at '${garnPath}' does not seem to produce a meta file when executed`);
-  }
+export function getTasks() {
+  return Object.keys(tasks).filter(name => name !== 'default' && !tasks[name].isInternalTask);
 }
 
 function isPromise(x: unknown): x is Promise<unknown> {
