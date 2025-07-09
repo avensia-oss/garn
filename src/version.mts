@@ -1,7 +1,7 @@
-import * as cliArgs from './cli-args';
-import * as git from './git';
-import * as workspace from './workspace';
-import * as log from './logging';
+import * as cliArgs from './cli-args.mjs';
+import * as git from './git.mjs';
+import * as workspace from './workspace.mjs';
+import * as log from './logging.mjs';
 
 export type Version = {
   /** Three digit version, separated by dot. For example: 1.2.3 */
@@ -29,7 +29,8 @@ export type Prerelease = {
  * @avensia-package@2.2.3
  * With support for named groups
  */
-const gitTagRegex: RegExp = /^(?<name>@?[a-zA-Z0-9_-]+)@(?<version>(?<versionCore>[0-9]+\.[0-9]+\.[0-9]+)(\-(?<preRelease>[a-zA-Z0-9\.]+))?)$/;
+const gitTagRegex: RegExp =
+  /^(?<name>@?[a-zA-Z0-9_-]+)@(?<version>(?<versionCore>[0-9]+\.[0-9]+\.[0-9]+)(\-(?<preRelease>[a-zA-Z0-9\.]+))?)$/;
 
 /**
  * Returns a string with format X.Y.Z(W) (semver 2.0 https://semver.org/spec/v2.0.0.html)
@@ -48,9 +49,11 @@ export async function currentVersion(): Promise<Version> {
   if (cliVersionString !== undefined) {
     const cliVersion = await fromTag(cliVersionString);
     const currentPackageName = workspace.current()?.name;
+    console.log('cliVersion', cliVersion);
     if (cliVersion.packageName && cliVersion.packageName !== currentPackageName) {
       throw new Error(
-        `The cli flag --version was set to '${cliVersionString}' but that does not match the current package which is '${currentPackageName ? currentPackageName : '(none)'
+        `The cli flag --version was set to '${cliVersionString}' but that does not match the current package which is '${
+          currentPackageName ? currentPackageName : '(none)'
         } '`,
       );
     }
@@ -75,6 +78,8 @@ export async function currentVersion(): Promise<Version> {
   if (latest.sha1 === currentSha1) {
     return latest;
   }
+
+  console.log('latest', latest);
 
   const commitsSinceLatest = await git.commitCountBetween(latest.sha1, currentSha1);
 

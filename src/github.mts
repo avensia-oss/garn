@@ -1,7 +1,6 @@
 import { Octokit } from '@octokit/rest';
-import { changelog, git } from '.';
-import * as os from 'os';
-import { GithubAccess } from './github-access';
+import { changelog, git } from './index.mjs';
+import os from 'os';
 
 export type LogLevel = 'debug' | 'warn' | 'info' | 'error';
 
@@ -80,6 +79,7 @@ type GithubConfig = {
 };
 
 export async function findPrForCurrentBranch({ organization, repo, branch }: GithubConfig) {
+  const { GithubAccess } = await import('./github-access.mjs');
   await GithubAccess.validateCredentials();
   const octokit = new Octokit({
     auth: await GithubAccess.getAccessToken(),

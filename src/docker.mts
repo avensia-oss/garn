@@ -1,8 +1,8 @@
-import * as path from 'path';
-import * as fs from 'fs';
-import { spawn, isInPath } from './exec';
-import * as log from './logging';
-import * as version from './version';
+import path from 'path';
+import fs from 'fs';
+import { spawn, isInPath } from './exec.mjs';
+import * as log from './logging.mjs';
+import * as version from './version.mjs';
 
 export async function run(args: string[]) {
   await verifyDockerInPath();

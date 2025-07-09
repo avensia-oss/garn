@@ -2,20 +2,17 @@
   "buildOnSave": false,
   "compileOnSave": false,
   "compilerOptions": {
-    "outDir": "dist",
-    "declaration": true,
-    "jsx": "react",
-    "target": "es6",
-    "module": "commonjs",
-    "strict": true,
-    "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "node",
-    "downlevelIteration": true,
-    "lib": ["es2018", "dom", "dom.iterable"],
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "rewriteRelativeImportExtensions": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
     "skipLibCheck": true,
-    "sourceMap": true,
-    "noEmit": true,
-    "checkJs": true,
+    "declaration": true,
+    "declarationDir": "./dist/types"
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"]
+  "include": ["src/**/*.mts"]
 }

@@ -1,18 +1,19 @@
-import * as os from 'os';
-import * as childProcess from 'child_process';
-import * as path from 'path';
-import * as fs from 'fs';
-import { projectPath } from './index';
-import * as exec from './exec';
-import { currentVersion } from './version';
-import { runNode } from './node';
+import os from 'os';
+import childProcess from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import { getProjectPath } from './index.mjs';
+import * as exec from './exec.mjs';
+import { currentVersion } from './version.mjs';
+import { runNode } from './node.mjs';
+import { getProjectRoot } from './workspace.mts';
 
 export async function runScript(script: string, args: string[] = []) {
   return runYarn(['run', script, ...args]);
 }
 
 export async function publishPackage(packageFolderName?: string) {
-  const packagePath = packageFolderName ? path.join(projectPath, 'src', packageFolderName) : projectPath;
+  const packagePath = packageFolderName ? path.join(getProjectPath(), 'src', packageFolderName) : getProjectPath();
   const [versionString, isPrerelease] = await versionArg();
   return runYarn([
     'publish',
@@ -67,21 +68,24 @@ export async function runBin(bin: string, args: string[] = []) {
    */
   if (executablePath.indexOf(path.join('node_modules', '.bin')) === -1) {
     if (executablePath.endsWith('.js')) {
-      return await runNode([executablePath, ...args]);
+      return await runNode([executablePath, ...args], { stdio: 'pipe' });
     }
   }
 
   // Yarn v1
   const executable = os.platform() === 'win32' ? executablePath + '.cmd' : executablePath;
   return await exec.spawn(executable, args, {
-    cwd: projectPath,
+    cwd: getProjectPath(),
+    shell: true,
+    stdio: 'pipe',
   });
 }
 
 async function runYarn(args: string[] = [], options?: childProcess.SpawnOptions) {
   const executable = os.platform() === 'win32' ? 'yarn.cmd' : 'yarn';
-  return await exec.spawn(path.join(projectPath, executable), args, {
-    cwd: projectPath,
+  return await exec.spawn(path.join(getProjectPath(), executable), args, {
+    cwd: getProjectPath(),
+    shell: true,
     ...(options ?? {}),
   });
 }

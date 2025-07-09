@@ -1,7 +1,7 @@
-import { spawn, spawnSync } from './exec';
-import { projectPath } from './index';
-import * as log from './logging';
-import { fromTag, isVersionTag, Version } from './version';
+import { spawn, spawnSync } from './exec.mjs';
+import { getProjectPath } from './index.mts';
+import * as log from './logging.mjs';
+import { fromTag, isVersionTag, type Version } from './version.mjs';
 
 export type Tag = {
   name: string;
@@ -179,12 +179,12 @@ export function pull(withRebase = true, cwd?: string) {
 }
 
 async function git(args: string[], cwd: string | undefined) {
-  const result = await spawn('git', args, { stdio: 'pipe', cwd: cwd ?? projectPath });
+  const result = await spawn('git', args, { stdio: 'pipe', cwd: cwd ?? getProjectPath() });
   return result.stdout.trim();
 }
 
 function gitSync(args: string[], cwd: string | undefined) {
-  const result = spawnSync('git', args, { stdio: 'pipe', cwd: cwd ?? projectPath });
+  const result = spawnSync('git', args, { stdio: 'pipe', cwd: cwd ?? getProjectPath() });
   return result.stdout.trim();
 }
 

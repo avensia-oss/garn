@@ -1,10 +1,10 @@
-import * as childProcess from 'child_process';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as log from './logging';
-import * as variables from './variables';
-import * as prompt from './prompt';
+import childProcess from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
+import * as log from './logging.mjs';
+import * as variables from './variables.mjs';
+import * as prompt from './prompt.mjs';
 
 type SpawnSyncError = Error & {
   code: string;
@@ -29,7 +29,7 @@ export function spawnSync(
 
   const processResult = childProcess.spawnSync(command, args, {
     ...(options ?? {}),
-    shell: true,
+    ...(os.platform() === 'win32' ? { shell: true } : {}),
   });
 
   return {
@@ -62,7 +62,10 @@ export async function spawn(
     }
 
     log.verbose(`Spawning '${command}' with args '${args.join(' ')}'`);
-    const spawnedProcess = childProcess.spawn(command, args, { ...(options ?? {}), shell: true });
+    const spawnedProcess = childProcess.spawn(command, args, {
+      ...(options ?? {}),
+      ...(os.platform() === 'win32' ? { shell: true } : {}),
+    });
     const outChunks: any[] = [];
     const outListener = (chunk: any) => outChunks.push(chunk);
     if (spawnedProcess.stdout) {

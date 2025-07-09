@@ -1,4 +1,4 @@
-import { Commit } from './git';
+import type { Commit } from './git.mjs';
 
 type ChangeLogFormatter = {
   heading(text: string, level: number, repoUrl: string): string[];

@@ -1,25 +1,40 @@
 import * as dotenv from 'dotenv';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as inquirer from 'inquirer';
-import * as cliArgs from './cli-args';
-import * as log from './logging';
+import fs from 'fs';
+import path from 'path';
+import inquirer from 'inquirer';
+import * as cliArgs from './cli-args.mjs';
+import * as log from './logging.mjs';
+import { getProjectRoot } from './workspace.mts';
 
-export let envVariablesFile = path.join(cliArgs.buildsystemPath, '..', '.env');
+export let envVariablesFile = path.join(getProjectRoot(), '.env');
 
-const packageJson = require(path.join(cliArgs.buildsystemPath, '..', 'package.json'));
+// Use fs.readFileSync instead of require for ES modules
+const packageJsonPath = path.join(getProjectRoot(), 'package.json');
+let packageJson: any = {};
 let explicitPathFromPackageJson: string | undefined = undefined;
-if (packageJson.envFile) {
-  const envFilePath = path.normalize(path.join(cliArgs.buildsystemPath, '..', packageJson.envFile));
-  explicitPathFromPackageJson = envFilePath;
-  if (fs.existsSync(envFilePath)) {
-    envVariablesFile = envFilePath;
+
+try {
+  if (fs.existsSync(packageJsonPath)) {
+    packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    if (packageJson.envFile) {
+      const envFilePath = path.normalize(path.join(getProjectRoot(), packageJson.envFile));
+      explicitPathFromPackageJson = envFilePath;
+      if (fs.existsSync(envFilePath)) {
+        envVariablesFile = envFilePath;
+      }
+    }
+  } else {
+    console.warn(`Warning: package.json not found at ${packageJsonPath}. Using default .env file location.`);
   }
+} catch (error) {
+  console.warn(
+    `Warning: Failed to read package.json at ${packageJsonPath}: ${error instanceof Error ? error.message : 'Unknown error'}. Using default .env file location.`,
+  );
 }
 
 let tries = 0;
 while (!fs.existsSync(envVariablesFile) && tries < 10) {
-  envVariablesFile = path.join(path.dirname(envVariablesFile), '..', '.env');
+  envVariablesFile = path.join(path.dirname(envVariablesFile), '.env');
   tries++;
 }
 
@@ -107,7 +122,7 @@ export async function promptForAllValues() {
   if (await cliArgs.flags.noPrompt.get()) {
     return;
   }
-  const questions = [];
+  const questions: any[] = [];
   for (const variableName in variables) {
     const variable = variables[variableName];
     questions.push({
@@ -168,7 +183,16 @@ function create<TValue, TDefaultValue>(config: Variable<TValue, TDefaultValue | 
             name: config.name,
             type: 'input',
             message: config.question,
-            default: config.defaultValue,
+            default: (() => {
+              if (typeof config.defaultValue === 'function') {
+                return async () => {
+                  const result = await (config.defaultValue as () => Promise<TDefaultValue>)();
+                  return result !== undefined ? String(result) : undefined;
+                };
+              } else {
+                return config.defaultValue !== undefined ? String(config.defaultValue) : undefined;
+              }
+            })(),
             validate: config.validate,
           });
           value = config.parser(answer[config.name] as string);

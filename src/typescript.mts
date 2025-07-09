@@ -1,11 +1,14 @@
-import * as path from 'path';
-import * as chalk from 'chalk';
-import { projectPath } from '.';
+import path from 'path';
+import fs from 'fs';
+import chalk from 'chalk';
+import { getProjectPath } from './index.mts';
+import { spawn } from './exec.mjs';
 
 export async function typecheck(tsConfigPath: string) {
   const ts = await import('typescript');
   const basePath = path.dirname(tsConfigPath);
-  const tsConfig = require(tsConfigPath);
+  const tsConfig = JSON.parse(fs.readFileSync(tsConfigPath, 'utf8'));
+  console.log('tsConfig', tsConfigPath);
   const parsed = ts.parseJsonConfigFileContent(tsConfig, ts.sys, path.dirname(tsConfigPath));
   parsed.options.noEmit = true;
   const program = ts.createProgram(parsed.fileNames, parsed.options);
@@ -20,7 +23,7 @@ export async function typecheck(tsConfigPath: string) {
       const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
       errors.push(
         chalk.green(
-          path.relative(projectPath, diagnostic.file.fileName) + '(' + line + 1 + ',' + character + 1 + '):',
+          path.relative(getProjectPath(), diagnostic.file.fileName) + '(' + line + 1 + ',' + character + 1 + '):',
         ) +
           ' ' +
           message,

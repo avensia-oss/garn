@@ -1,6 +1,6 @@
-import { tasks } from './index';
-import { log } from './logging';
-import * as workspace from './workspace';
+import { tasks } from './index.mjs';
+import { log } from './logging.mjs';
+import * as workspace from './workspace.mjs';
 
 export default () => {
   const padWithSpace = (s: string, size: number) => {
@@ -37,10 +37,6 @@ export default () => {
     log('');
     log('You can invoke tasks inside a workspace by calling:');
     log('garn [workspace name] [workspace task name]');
-    log('');
-    log('You can run all tasks with the same name in all workspaces by calling:');
-    log('garn workspace [task name]');
-    log('');
   }
 
   log('');

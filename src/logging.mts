@@ -1,4 +1,4 @@
-import { flags } from './cli-args';
+import { flags } from './cli-args.mjs';
 
 export type LogLevel = 'verbose' | 'info' | 'log' | 'warn' | 'error';
 

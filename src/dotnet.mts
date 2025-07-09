@@ -1,8 +1,8 @@
 import * as path from 'path';
-import { projectPath } from './index';
-import { spawn } from './exec';
-import { flags } from './cli-args';
-import { currentVersion } from './version';
+import { getProjectPath } from './index.mts';
+import { spawn } from './exec.mts';
+import { flags } from './cli-args.mts';
+import { currentVersion } from './version.mts';
 
 export type PackageDetails = {
   name: string;
@@ -259,7 +259,7 @@ export async function nugetPush(binPath: string, packageName: string, options?: 
 
 export async function solutionPath(targetPath?: string) {
   const glob = await import('glob');
-  const projPath = targetPath ?? projectPath;
+  const projPath = targetPath ?? getProjectPath();
   const result = glob.sync('*.sln', { cwd: projPath });
   if (!result[0]) {
     return undefined;
