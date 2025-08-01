@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from './exec';
+import { spawn } from './exec';
 import { projectPath } from './index';
 import * as log from './logging';
 import { fromTag, isVersionTag, Version } from './version';
@@ -178,18 +178,23 @@ export function pull(withRebase = true, cwd?: string) {
   return gitWithNetwork(args, cwd);
 }
 
-async function git(args: string[], cwd: string | undefined) {
-  const result = await spawn('git', args, { stdio: 'pipe', cwd: cwd ?? projectPath });
-  return result.stdout.trim();
-}
+// git on some Docker images such as alpine node behaves very odd when you run multiple git command
+// in parallel. This ensures that we're only running a single git command at a time.
+let currentCommand: Promise<unknown> = Promise.resolve();
 
-function gitSync(args: string[], cwd: string | undefined) {
-  const result = spawnSync('git', args, { stdio: 'pipe', cwd: cwd ?? projectPath });
-  return result.stdout.trim();
+async function git(args: string[], cwd: string | undefined) {
+  return (currentCommand = currentCommand.then(async () => {
+    const command = spawn('git', args, { stdio: 'pipe', cwd: cwd ?? projectPath });
+    const result = await command;
+    const stdout = result.stdout.trim();
+    return stdout;
+  }));
 }
 
 async function gitWithNetwork(args: string[], cwd: string | undefined) {
-  await spawn('git', args, { stdio: 'inherit', cwd });
+  return (currentCommand = currentCommand.then(async () => {
+    await spawn('git', args, { stdio: 'inherit', cwd });
+  }));
 }
 
 const separator = '?!!!!!?';
@@ -263,7 +268,7 @@ export async function logBetween(
     args.push(options.path);
   }
 
-  const rawCommitOutput = await gitSync(args, cwd);
+  const rawCommitOutput = await git(args, cwd);
 
   const rawCommits = rawCommitOutput
     .replace(/\r?\n/g, '') // Removes new line
