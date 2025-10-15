@@ -1,55 +1,55 @@
 {
-  "name": "@avensia-oss/garn",
-  "version": "1.0.3",
-  "main": "dist/index.js",
-  "repository": "https://github.com/avensia-oss/garn",
-  "author": "Anders Ekdahl <anders.ekdahl@avensia.com>",
-  "license": "MIT",
-  "bin": "dist/garn-bin.js",
-  "files": [
-    "dist/**/*"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
-  "scripts": {
-    "build": "tsc --noEmit false",
-    "build:prod": "yarn clean && yarn build && chmod 755 dist/garn-bin.js",
-    "watch": "yarn build --watch",
-    "clean": "rimraf dist",
-    "prepack": "echo Running prepack && yarn run build:prod",
-    "prepublishOnly": "echo Running prepublishOnly && yarn run build:prod"
-  },
-  "dependencies": {
-    "@octokit/rest": "^18.12.0",
-    "chalk": "^4.1.0",
-    "cross-fetch": "^3.1.5",
-    "dotenv": "^8.2.0",
-    "glob": "10.3.10",
-    "inquirer": "^7.1.0",
-    "is-installed-globally": "^0.4.0",
-    "keytar": "^7.9.0",
-    "minimist": "^1.2.8",
-    "open": "^8.4.0",
-    "readline-sync": "^1.4.10",
-    "rimraf": "5",
-    "string-similarity": "^4.0.1",
-    "through": "^2.3.8",
-    "typescript": "~5.4.3"
-  },
-  "devDependencies": {
-    "@types/inquirer": "^6.5.0",
-    "@types/keytar": "^4.4.2",
-    "@types/minimist": "^1.2.5",
-    "@types/node": "^22",
-    "@types/readline-sync": "^1.4.3",
-    "@types/string-similarity": "^3.0.0",
-    "@types/through": "^0.0.30",
-    "prettier": "^2.2.1",
-    "typescript": "~5.4.3"
-  },
-  "peerDependencies": {
-    "typescript": ">=5.4"
-  },
-  "packageManager": "yarn@4.1.1"
+    "name": "@avensia-oss/garn",
+    "version": "1.0.3",
+    "main": "dist/index.js",
+    "repository": "https://github.com/avensia-oss/garn",
+    "author": "Anders Ekdahl <anders.ekdahl@avensia.com>",
+    "license": "MIT",
+    "bin": "dist/garn-bin.js",
+    "files": [
+        "dist/**/*"
+    ],
+    "publishConfig": {
+        "access": "public"
+    },
+    "scripts": {
+        "build": "tsc --noEmit false",
+        "build:prod": "yarn clean && yarn build && chmod 755 dist/garn-bin.js",
+        "watch": "yarn build --watch",
+        "clean": "rimraf dist",
+        "prepack": "echo Running prepack && yarn run build:prod",
+        "prepublishOnly": "echo Running prepublishOnly && yarn run build:prod"
+    },
+    "dependencies": {
+        "@octokit/rest": "^18.12.0",
+        "chalk": "^4.1.0",
+        "cross-fetch": "^3.1.5",
+        "dotenv": "15",
+        "glob": "10.3.10",
+        "inquirer": "^7.1.0",
+        "is-installed-globally": "^0.4.0",
+        "keytar": "^7.9.0",
+        "minimist": "^1.2.8",
+        "open": "^8.4.0",
+        "readline-sync": "^1.4.10",
+        "rimraf": "5",
+        "string-similarity": "^4.0.1",
+        "through": "^2.3.8",
+        "typescript": "~5.4.3"
+    },
+    "devDependencies": {
+        "@types/inquirer": "^6.5.0",
+        "@types/keytar": "^4.4.2",
+        "@types/minimist": "^1.2.5",
+        "@types/node": "^22",
+        "@types/readline-sync": "^1.4.3",
+        "@types/string-similarity": "^3.0.0",
+        "@types/through": "^0.0.30",
+        "prettier": "^2.2.1",
+        "typescript": "~5.4.3"
+    },
+    "peerDependencies": {
+        "typescript": ">=5.4"
+    },
+    "packageManager": "yarn@4.1.1"
 }
