@@ -39,8 +39,8 @@ export type Flags = { [name: string]: Flag<any, any> } & {
    * should consider doing so if this flag is set.
    */
   parallel: Flag<boolean>;
-  /** Indicates the the command was executed from a ci/cd pipline
-   * which can be used to add specific behavious to the build and pack commands**/
+  /** Indicates the the command was executed from a ci/cd pipeline
+   * which can be used to add specific behaviours to the build and pack commands**/
   buildServer: Flag<boolean>;
 };
 
@@ -73,22 +73,7 @@ export function registerFlag<TValue, TDefaultValue = TValue>(
     defaultValue,
     possibleValues,
     get: async (explicitDefaultValue?: TDefaultValue) => {
-      /**
-       * In windows you can set foo-bar=baz as environment variable
-       * This is not the case for *nix where valid env vars is only
-       * accepting [a-zA-Z_]{1,}[a-zA-Z0-9_]*
-       *
-       * So we convert the name from foo-bar to FOO_BAR.
-       */
-      const nameAsValidPosixStringUpperCase = name.toUpperCase().replace(/-/g, '_');
-      // In some recommendations they suggest using lowercase for representing application variables.
-      // So we support that as well, `foo_bar`.
-      const nameAsValidPosixStringLowerCase = name.toLowerCase().replace(/-/g, '_');
-      // Keep it backward compatible by grabbing `foo-bar` if it exists. Else try `FOO_BAR`
-      const envValue =
-        process.env[name] ||
-        process.env[nameAsValidPosixStringLowerCase] ||
-        process.env[nameAsValidPosixStringUpperCase];
+      const envValue = getNormalizedEnvironmentVariable(name);
       const explicitDefaultValueIsExplicitlyUndefined = explicitDefaultValue === undefined && arguments.length >= 1;
 
       if (currentValueSet) {
@@ -97,8 +82,8 @@ export function registerFlag<TValue, TDefaultValue = TValue>(
       const workspace = await import('./workspace');
       const currentWorkspace = workspace.current();
       let value: TValue | TDefaultValue | undefined;
-      if (currentWorkspace && process.env[currentWorkspace.name + '-' + name]) {
-        value = valueOf(process.env[currentWorkspace.name + '-' + name]!, type);
+      if (currentWorkspace && getNormalizedEnvironmentVariable(`${currentWorkspace.name}-${name}`)) {
+        value = valueOf(getNormalizedEnvironmentVariable(`${currentWorkspace.name}-${name}`)!, type);
       } else if (envValue) {
         value = valueOf(envValue!, type);
       } else if (defaultValue !== undefined || hasUndefinedAsExplicitDefault) {
@@ -133,6 +118,26 @@ export function registerFlag<TValue, TDefaultValue = TValue>(
     flags[name] = flag;
   }
   return flag;
+}
+
+/**
+ * In windows you can set foo-bar=baz as environment variable
+ * This is not the case for *nix where valid env vars is only
+ * accepting [a-zA-Z_]{1,}[a-zA-Z0-9_]*
+ *
+ * So for foo-bar we also check FOO_BAR and foo_bar.
+ */
+function getNormalizedEnvironmentVariable(environmentVariableName: string): string | undefined {
+  const nameAsValidPosixStringUpperCase = environmentVariableName.toUpperCase().replace(/-/g, '_');
+  // In some recommendations they suggest using lowercase for representing application variables.
+  // So we support that as well, `foo_bar`.
+  const nameAsValidPosixStringLowerCase = environmentVariableName.toLowerCase().replace(/-/g, '_');
+  // Keep it backward compatible by grabbing `foo-bar` if it exists. Else try `FOO_BAR`
+  return (
+    process.env[environmentVariableName] ||
+    process.env[nameAsValidPosixStringLowerCase] ||
+    process.env[nameAsValidPosixStringUpperCase]
+  );
 }
 
 export const taskName = argv._[0] || 'default';
