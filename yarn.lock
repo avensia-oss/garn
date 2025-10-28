@@ -34,6 +34,9 @@ __metadata:
     typescript: "npm:~5.4.3"
   peerDependencies:
     typescript: ">=5.4"
+  dependenciesMeta:
+    keytar:
+      built: true
   bin:
     garn: dist/garn-bin.js
   languageName: unknown
