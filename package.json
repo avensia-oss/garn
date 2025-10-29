@@ -1,6 +1,7 @@
 {
+  "$schema": "https://json.schemastore.org/package",
   "name": "@avensia-oss/garn",
-  "version": "1.0.3",
+  "version": "1.0.4-rc.1",
   "main": "dist/index.js",
   "repository": "https://github.com/avensia-oss/garn",
   "author": "Anders Ekdahl <anders.ekdahl@avensia.com>",
@@ -51,5 +52,10 @@
   "peerDependencies": {
     "typescript": ">=5.4"
   },
-  "packageManager": "yarn@4.1.1"
+  "dependenciesMeta": {
+    "keytar": {
+      "built": true
+    }
+  },
+  "packageManager": "yarn@4.10.3"
 }

@@ -1,0 +1,10 @@
+# used for tools like ripgrep
+# allows ripgrep to search in directories prefixed with !, even though they are ignored in .gitignore
+
+.git
+!.nvmrc
+!.yarnrc.yml
+!.ignore
+!.editorconfig
+!.gitignore
+
