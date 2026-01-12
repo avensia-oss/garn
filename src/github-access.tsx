@@ -34,6 +34,11 @@ export class GithubAccess {
     return await keytar.setPassword(GITHUB_ACCESS_TOKEN_ENV_NAME, GithubAccess.OAuthClientId, token);
   }
 
+  public static async clearAccessToken() {
+    const keytar = await import('keytar');
+    return await keytar.deletePassword(GITHUB_ACCESS_TOKEN_ENV_NAME, GithubAccess.OAuthClientId);
+  }
+
   public static async hasCredentials(): Promise<boolean> {
     return !!(await GithubAccess.getAccessToken());
   }
