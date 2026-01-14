@@ -1,7 +1,8 @@
 import { Octokit } from '@octokit/rest';
-import { changelog, git } from '.';
+import { changelog, git, log } from '.';
 import * as os from 'os';
 import { GithubAccess } from './github-access';
+import * as chalk from 'chalk';
 
 export type LogLevel = 'debug' | 'warn' | 'info' | 'error';
 
@@ -85,11 +86,20 @@ export async function findPrForCurrentBranch({ organization, repo, branch }: Git
     auth: await GithubAccess.getAccessToken(),
   });
   const currentBranch = branch ?? (await git.getCurrentBranchName());
-  const prs = await octokit.rest.pulls.list({
-    owner: organization,
-    repo,
-    head: `${organization}:${currentBranch}`,
-  });
+  try {
+    const prs = await octokit.rest.pulls.list({
+      owner: organization,
+      repo,
+      head: `${organization}:${currentBranch}`,
+    });
 
-  return prs.data;
+    return prs.data;
+  } catch (e) {
+    log.error(e);
+    log.log('');
+    await GithubAccess.clearAccessToken();
+    log.log(chalk.blue.bold('An error occurred while trying to access GitHub.'));
+    log.log(chalk.blue.bold('Your local GitHub credentials have now been cleared.'));
+    log.log(chalk.blue.bold('Please run the command again to re-authenticate.'));
+  }
 }

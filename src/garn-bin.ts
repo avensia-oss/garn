@@ -38,6 +38,14 @@ if (isInstalledGlobally) {
     process.argv.splice(2, 0, '--' + buildsystemPathArgName, assumedBuildsystemPath);
   }
 
+  // Add --version support
+  if (process.argv.includes('--version') || process.argv.includes('-v')) {
+    const garnPackageJsonPath = path.join(__dirname, '..', 'package.json');
+    const garnPackageJson = JSON.parse(fs.readFileSync(garnPackageJsonPath).toString());
+    console.log(garnPackageJson.version);
+    process.exit(0);
+  }
+
   const argv = minimist(process.argv.slice(2));
 
   const buildsystemPath = argv[buildsystemPathArgName];
@@ -395,8 +403,8 @@ function printDiagnostics(allDiagnostics: typescript.Diagnostic[], buildsystemPa
         chalk.green(
           path.relative(projectPath, diagnostic.file.fileName) + '(' + line + 1 + ',' + character + 1 + '):',
         ) +
-        ' ' +
-        message,
+          ' ' +
+          message,
       );
       console.log();
     } else {
@@ -425,7 +433,7 @@ function buildCompilationManifest(dirInBuildCache: string, buildsystemPath: stri
   let files: string[] = [];
   try {
     files = fs.readdirSync(dirInBuildCache);
-  } catch (e) { }
+  } catch (e) {}
   for (const file of files) {
     const fullPath = path.join(dirInBuildCache, file);
     if (!fullPath.endsWith('.map') && !file.startsWith('.')) {
