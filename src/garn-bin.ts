@@ -38,8 +38,8 @@ if (isInstalledGlobally) {
     process.argv.splice(2, 0, '--' + buildsystemPathArgName, assumedBuildsystemPath);
   }
 
-  // Add --version support
-  if (process.argv.includes('--version') || process.argv.includes('-v')) {
+  // Add --internal-version support
+  if (process.argv.includes('--internal-version') || process.argv.includes('-v')) {
     const garnPackageJsonPath = path.join(__dirname, '..', 'package.json');
     const garnPackageJson = JSON.parse(fs.readFileSync(garnPackageJsonPath).toString());
     console.log(garnPackageJson.version);
