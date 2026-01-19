@@ -39,7 +39,7 @@ if (isInstalledGlobally) {
   }
 
   // Add --internal-version support
-  if (process.argv.includes('--internal-version') || process.argv.includes('-v')) {
+  if (process.argv.includes('--internal-version')) {
     const garnPackageJsonPath = path.join(__dirname, '..', 'package.json');
     const garnPackageJson = JSON.parse(fs.readFileSync(garnPackageJsonPath).toString());
     console.log(garnPackageJson.version);
