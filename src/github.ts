@@ -59,7 +59,7 @@ export async function CreateRelease(
     repoUrl: string,
     format: changelog.ChangeLogFormat = 'markdown',
   ) {
-    const packageResult = await git.logBetween({
+   const packageResult = await git.logBetween({
       to: toTag,
       from: fromTag,
       path: workspaceSrcPath,
@@ -101,5 +101,6 @@ export async function findPrForCurrentBranch({ organization, repo, branch }: Git
     log.log(chalk.blue.bold('An error occurred while trying to access GitHub.'));
     log.log(chalk.blue.bold('Your local GitHub credentials have now been cleared.'));
     log.log(chalk.blue.bold('Please run the command again to re-authenticate.'));
+    return [];
   }
 }
