@@ -11,14 +11,20 @@ import isInstalledGlobally from 'is-installed-globally';
 
 const execExt = process.platform === 'win32' ? '.cmd' : '';
 
+function currentWorkspaceRoot(): string {
+  return path.basename(process.cwd()) === 'buildsystem' ? path.dirname(process.cwd()) : process.cwd();
+}
+
 // Check for verbose flag
 const verboseFlag = process.argv.includes('--verbose');
-const verboseLog = verboseFlag ? console.log : () => {};
+const verboseLog = verboseFlag ? console.log : () => { };
+
+const cwdWorkspaceRoot = currentWorkspaceRoot();
 
 // Check for workspace= format in arguments
 let workspacePackage = getWorkspace();
 
-setProjectPath(workspacePackage?.workspacePath ?? process.cwd());
+setProjectPath(workspacePackage?.workspacePath ?? cwdWorkspaceRoot);
 
 function cleanFileUrl(url: string): string {
   return url.replace(/^file:\/\/\/?/, '');
@@ -46,7 +52,7 @@ if (isInstalledGlobally) {
   verboseLog(chalk.blue('🌐 Running garn in global mode'));
 
   if (!projectRoot) {
-    console.error(chalk.red('❌ Error: Add a garn-workspaces.mts file to the root of your project to use garn'));
+    console.error(chalk.red('❌ Error: Add buildsystem/garn-workspaces.mts to the root of your project to use garn'));
     process.exit(1);
   }
 
@@ -97,21 +103,21 @@ if (isInstalledGlobally) {
 
   let taskRegistryPath: string;
   let fileType: string;
-  const workspacePath = path.join(workspacePackage?.workspacePath ?? process.cwd(), 'garn-workspace.mts');
+  const workspacePath = path.join(workspacePackage?.workspacePath ?? cwdWorkspaceRoot, 'buildsystem', 'garn-workspace.mts');
 
   if (workspacePath && fs.existsSync(workspacePath)) {
     taskRegistryPath = workspacePath;
-    fileType = 'garn-workspace.mts';
+    fileType = 'buildsystem/garn-workspace.mts';
     verboseLog(chalk.blue('🔍 Using workspace file:'), workspacePath);
-  } else if (projectRoot && fs.existsSync(path.join(projectRoot, 'garn-workspaces.mts'))) {
-    taskRegistryPath = path.join(projectRoot, 'garn-workspaces.mts');
-    fileType = 'garn-workspaces.mts';
-    verboseLog(chalk.green('✓ Using garn-workspaces.mts from project root'));
+  } else if (projectRoot && fs.existsSync(path.join(projectRoot, 'buildsystem', 'garn-workspaces.mts'))) {
+    taskRegistryPath = path.join(projectRoot, 'buildsystem', 'garn-workspaces.mts');
+    fileType = 'buildsystem/garn-workspaces.mts';
+    verboseLog(chalk.green('✓ Using buildsystem/garn-workspaces.mts from project root'));
   } else {
-    console.error(chalk.red('❌ Error: Could not find garn-workspace.mts or garn-workspaces.mts'));
+    console.error(chalk.red('❌ Error: Could not find buildsystem/garn-workspace.mts or buildsystem/garn-workspaces.mts'));
     console.error(
       chalk.yellow(
-        '⚠️  Please ensure you are running garn from a directory that contains either garn-workspace.mts or garn-workspaces.mts file',
+        '⚠️  Please ensure your workspace or project root contains the required buildsystem config file',
       ),
     );
     process.exit(0);
@@ -125,11 +131,10 @@ if (isInstalledGlobally) {
     verboseLog(chalk.green('✓ Configuration loaded successfully'));
   } catch (error) {
     if (error instanceof Error) {
+      console.log(error)
       if (error.message.includes('Cannot find module')) {
         console.error(chalk.red(`❌ Error: Could not find ${fileType} at ${taskRegistryPath}`));
-        console.error(
-          chalk.yellow(`⚠️  Please ensure you are running garn from a directory that contains a ${fileType} file`),
-        );
+        console.error(chalk.yellow(`⚠️  Please ensure the expected config file exists at ${taskRegistryPath}`));
       } else {
         console.error(chalk.red(`❌ Error loading ${fileType}:`), error.message);
       }
@@ -147,7 +152,7 @@ if (isInstalledGlobally) {
       await run(cliArgs.argv._[1]);
     } else {
       await run(
-        workspacePackage && workspacePackage.workspacePath !== process.cwd()
+        workspacePackage && workspacePackage.workspacePath !== cwdWorkspaceRoot
           ? (cliArgs.argv._[firstArg === 'workspace' ? 2 : 1] ?? 'default')
           : cliArgs.taskName,
       );

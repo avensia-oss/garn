@@ -39,10 +39,10 @@ This setup allows you to:
 
 ## Quick Start
 
-1. **Create a task registry file** in your project root:
+1. **Create a task registry file** in `buildsystem/` at your project root:
 
 ```typescript
-// garn-workspace.mts
+// buildsystem/garn-workspace.mts
 import { task } from '@avensia-oss/garn';
 
 task('build', 'Build the project', async () => {
@@ -60,9 +60,9 @@ garn build
 
 Garn supports two types of configuration files:
 
-### garn-workspace.mts (Package-Level Tasks)
+### buildsystem/garn-workspace.mts (Package-Level Tasks)
 
-Use this file for package-specific tasks
+Use this file in each workspace's `buildsystem/` folder for package-specific tasks.
 
 ```typescript
 import { task, taskGroup } from '@avensia-oss/garn';
@@ -78,9 +78,9 @@ taskGroup('dev', () => {
 });
 ```
 
-### garn-workspaces.mts (Monorepo Management)
+### buildsystem/garn-workspaces.mts (Monorepo Management)
 
-Use this file for managing multiple workspaces and coordinating tasks across packages.
+Use this file in the monorepo root `buildsystem/` folder for managing multiple workspaces and coordinating tasks across packages.
 
 ```typescript
 import { release, workspaces, taskGroup, task } from '@avensia-oss/garn';
@@ -175,5 +175,5 @@ garn
 ## Troubleshooting
 
 - Use `garn --verbose` for detailed debugging information
-- Check that configuration files exist in the current directory or project root
+- Check that `buildsystem/garn-workspace.mts` or `buildsystem/garn-workspaces.mts` exists
 - Ensure garn is installed both globally and locally in your project

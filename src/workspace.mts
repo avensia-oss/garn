@@ -1,4 +1,5 @@
 import fs from 'fs';
+
 import path from 'path';
 import { glob } from 'glob';
 import { garnExecutable } from './index.mts';
@@ -40,10 +41,12 @@ export function getWorkspace() {
 
   if (!workspacePackage) {
     const currentDir = process.cwd();
-    workspacePackage = workspaces?.find(p => p.workspacePath === currentDir);
+    workspacePackage = workspaces?.find(
+      p => p.workspacePath === currentDir || path.join(p.workspacePath, 'buildsystem') === currentDir,
+    );
   }
 
-  setCurrentWorkspace(workspacePackage);
+  setCurrentWorkspace(workspacePackage!);
   return workspacePackage;
 }
 
@@ -77,8 +80,7 @@ export async function runTask(taskName: string, packageName?: string) {
         packagesToRunTaskIn = [cliPackage];
       } else {
         await log.error(
-          `No package with the name '${
-            cliVersion.packageName
+          `No package with the name '${cliVersion.packageName
           }' could be found in this workspace. Existing packages are: ${packages.map(p => p.name).join(', ')}`,
         );
         return exit();
@@ -152,13 +154,13 @@ async function exit(): Promise<never> {
   throw new Error();
 }
 
-// Function to find the project root by looking for garn-workspaces.mts
-export function findProjectRootWithGarnWorkspaces(): string | null {
+// Function to find the project root by looking for buildsystem/garn-workspaces.mts
+export function findProjectRootWithGarnWorkspaces(): string {
   let currentPath = process.cwd();
 
   let count = 0;
   while (true) {
-    const garnWorkspacesPath = path.join(currentPath, 'garn-workspaces.mts');
+    const garnWorkspacesPath = path.join(currentPath, 'buildsystem', 'garn-workspaces.mts');
 
     if (fs.existsSync(garnWorkspacesPath)) {
       return currentPath;
@@ -175,7 +177,7 @@ export function findProjectRootWithGarnWorkspaces(): string | null {
     }
   }
 
-  return null;
+  throw new Error(`Could not find a project root with buildsystem/garn-workspaces.mts within 5 levels of the current directory (${process.cwd()})`);
 }
 
 let projectRoot: string | undefined = undefined;
@@ -200,8 +202,8 @@ export function list() {
     return workspaces;
   }
 
-  // If no workspaces found via package.json, check for garn-workspaces.mts at project root
-  const garnWorkspacesPath = path.join(projectRoot, 'garn-workspaces.mts');
+  // If no workspaces found via package.json, check for buildsystem/garn-workspaces.mts at project root
+  const garnWorkspacesPath = path.join(projectRoot, 'buildsystem', 'garn-workspaces.mts');
   if (fs.existsSync(garnWorkspacesPath)) {
     return [
       {
@@ -215,46 +217,45 @@ export function list() {
   return undefined;
 }
 
-function expandWorkspaces(packageJsonPath) {
+function expandWorkspaces(packageJsonPath: string) {
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath).toString());
   const projectRoot = path.dirname(packageJsonPath);
 
   const workspacePatterns = packageJson.garnWorkspaces
-      ?? packageJson.workspaces?.packages
-      ?? packageJson.workspaces;
+    ?? packageJson.workspaces?.packages
+    ?? packageJson.workspaces;
 
   if (Array.isArray(workspacePatterns)) {
-      const workspaces = [];
-      for (const workspace of workspacePatterns) {
-          // Find each workspace that has a garn-workspace.mts file
-          // Always use '/' even on windows, because node-glob wants it that way
-          const expanded = glob.sync([workspace, 'garn-workspace.mts'].join('/'), {
-              cwd: projectRoot,
-          });
-          workspaces.push(...expanded.map(e => {
-              // Goes from packages/cloudflare-webapp/garn-workspace.mts to packages/cloudflare-webapp
-              const relativeWorkspacePath = path.dirname(e);
-              return {
-                  name: path.basename(relativeWorkspacePath),
-                  workspacePath: path.join(projectRoot, relativeWorkspacePath),
-                  garnPath: path.join(projectRoot, 'node_modules', '.bin', garnExecutable()),
-              };
-          }));
-      }
-      return workspaces;
+    const workspaces = [];
+    for (const workspace of workspacePatterns) {
+      // Find each workspace that has a buildsystem/garn-workspace.mts file
+      // Always use '/' even on windows, because node-glob wants it that way
+      const expanded = glob.sync([workspace, 'buildsystem', 'garn-workspace.mts'].join('/'), {
+        cwd: projectRoot,
+      });
+      workspaces.push(...expanded.map(e => {
+        // Goes from packages/cloudflare-webapp/buildsystem/garn-workspace.mts to packages/cloudflare-webapp
+        const relativeWorkspacePath = path.dirname(path.dirname(e));
+        return {
+          name: path.basename(relativeWorkspacePath),
+          workspacePath: path.join(projectRoot, relativeWorkspacePath),
+          garnPath: path.join(projectRoot, 'node_modules', '.bin', garnExecutable()),
+        };
+      }));
+    }
+    return workspaces;
   }
-  // Check if there's a garn-workspaces.mts file at the project root
-  const garnWorkspacesPath = path.join(projectRoot, 'garn-workspaces.mts');
+  // Check if there's a buildsystem/garn-workspaces.mts file at the project root
+  const garnWorkspacesPath = path.join(projectRoot, 'buildsystem', 'garn-workspaces.mts');
   if (fs.existsSync(garnWorkspacesPath)) {
-      // Return a special workspace entry for the root project with garn-workspaces.mts
-      return [
-          {
-              name: path.basename(projectRoot),
-              workspacePath: projectRoot,
-              garnPath: path.join(projectRoot, 'node_modules', '.bin', garnExecutable()),
-          },
-      ];
+    // Return a special workspace entry for the root project with buildsystem/garn-workspaces.mts
+    return [
+      {
+        name: path.basename(projectRoot),
+        workspacePath: projectRoot,
+        garnPath: path.join(projectRoot, 'node_modules', '.bin', garnExecutable()),
+      },
+    ];
   }
   return undefined;
 }
-

@@ -8,7 +8,6 @@ export async function typecheck(tsConfigPath: string) {
   const ts = await import('typescript');
   const basePath = path.dirname(tsConfigPath);
   const tsConfig = JSON.parse(fs.readFileSync(tsConfigPath, 'utf8'));
-  console.log('tsConfig', tsConfigPath);
   const parsed = ts.parseJsonConfigFileContent(tsConfig, ts.sys, path.dirname(tsConfigPath));
   parsed.options.noEmit = true;
   const program = ts.createProgram(parsed.fileNames, parsed.options);
@@ -25,8 +24,8 @@ export async function typecheck(tsConfigPath: string) {
         chalk.green(
           path.relative(getProjectPath(), diagnostic.file.fileName) + '(' + line + 1 + ',' + character + 1 + '):',
         ) +
-          ' ' +
-          message,
+        ' ' +
+        message,
       );
     } else {
       errors.push(ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
