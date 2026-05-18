@@ -6,8 +6,8 @@ name: Build Garn
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [maiLn]
+  # pull_request:
+  #   branches: [maiLn]
 
 jobs:
   build:
@@ -24,6 +24,6 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
+          cache: "yarn"
       - run: yarn
       - run: yarn build
