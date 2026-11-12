@@ -1,7 +1,7 @@
-import { spawn, spawnSync } from './exec';
-import { projectPath } from './index';
-import * as log from './logging';
-import { fromTag, isVersionTag, Version } from './version';
+import { spawn, spawnSync } from './exec.mjs';
+import { projectPath } from './index.mjs';
+import * as log from './logging.mjs';
+import { fromTag, isVersionTag, Version } from './version.mjs';
 
 export type Tag = {
   name: string;

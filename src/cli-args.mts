@@ -1,5 +1,5 @@
-import * as minimist from 'minimist';
-import * as log from './logging';
+import minimist from 'minimist';
+import * as log from './logging.mjs';
 
 export const argv = minimist(process.argv.slice(2), {
   '--': true,
@@ -44,7 +44,8 @@ export type Flags = { [name: string]: Flag<any, any> } & {
   buildServer: Flag<boolean>;
 };
 
-export const flags: Flags = {
+export const flags = {} as Flags;
+Object.assign(flags, {
   mode: registerFlag<'production' | 'development', 'development'>('mode', 'string', 'development', [
     'production',
     'development',
@@ -55,7 +56,7 @@ export const flags: Flags = {
   version: registerFlag<string, undefined>('version', 'string', undefined),
   asap: registerFlag<boolean>('asap', 'boolean', false),
   parallel: registerFlag<boolean>('parallel', 'boolean', false),
-};
+});
 
 export function registerFlag<TValue, TDefaultValue = TValue>(
   name: string,
@@ -79,7 +80,7 @@ export function registerFlag<TValue, TDefaultValue = TValue>(
       if (currentValueSet) {
         return currentValue;
       }
-      const workspace = await import('./workspace');
+      const workspace = await import('./workspace.mjs');
       const currentWorkspace = workspace.current();
       let value: TValue | TDefaultValue | undefined;
       if (currentWorkspace && getNormalizedEnvironmentVariable(`${currentWorkspace.name}-${name}`)) {
@@ -145,9 +146,6 @@ export const taskName = argv._[0] || 'default';
 export async function getChildArgs() {
   const args: Array<[string, string?]> = [];
   args.push(['--child-garn']);
-  if ('compile-buildsystem' in argv) {
-    args.push(['--compile-buildsystem']);
-  }
   for (const flag of Object.keys(flags)) {
     const value = await flags[flag].get();
     if (value !== flags[flag].defaultValue) {

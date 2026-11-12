@@ -1,6 +1,6 @@
-import { tasks } from './index';
-import { log } from './logging';
-import * as workspace from './workspace';
+import { tasks } from './index.mjs';
+import { log } from './logging.mjs';
+import * as workspace from './workspace.mjs';
 
 export default () => {
   const padWithSpace = (s: string, size: number) => {

@@ -2,9 +2,9 @@ import * as childProcess from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import * as log from './logging';
-import * as variables from './variables';
-import * as prompt from './prompt';
+import * as log from './logging.mjs';
+import * as variables from './variables.mjs';
+import * as prompt from './prompt.mjs';
 
 type SpawnSyncError = Error & {
   code: string;

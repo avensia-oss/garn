@@ -1,7 +1,6 @@
-import * as log from './logging';
-import * as chalk from 'chalk';
-import * as open from 'open';
-import { fetch } from 'cross-fetch';
+import * as log from './logging.mjs';
+import chalk from 'chalk';
+import open from 'open';
 
 const GITHUB_ACCESS_TOKEN_ENV_NAME = 'Github__OAuthAccessToken';
 
@@ -66,7 +65,7 @@ export class GithubAccess {
             Accept: 'application/json',
           },
         });
-        const deviceConfig: DeviceCode = await codeRequest.json();
+        const deviceConfig = (await codeRequest.json()) as DeviceCode;
         log.log('');
         log.log(chalk.bold.green('!'), chalk.bold('Garn needs access to github.'));
         log.log(chalk.bold.green('!'), 'A browser tab have been opened.');
@@ -98,7 +97,7 @@ export class GithubAccess {
               },
             });
 
-            const tokenCapture: OAuthReturn = await pollRequest.json();
+            const tokenCapture = (await pollRequest.json()) as OAuthReturn;
 
             if (tokenCapture.access_token) {
               GithubAccess.setAccessToken(tokenCapture.access_token);

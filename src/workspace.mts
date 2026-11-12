@@ -3,14 +3,14 @@ import * as path from 'path';
 import * as glob from 'glob';
 import * as fs from 'fs';
 
-import { garnExecutable, getMetaData } from './';
-import * as git from './git';
-import * as cliArgs from './cli-args';
-import { Version } from './version';
-import * as log from './logging';
-import { ParallelProgram, runInParallel } from './run-in-parallel';
-import { spawn } from './exec';
-import { fromTag, isVersionTag } from './version';
+import { garnExecutable, getMetaData } from './index.mjs';
+import * as git from './git.mjs';
+import * as cliArgs from './cli-args.mjs';
+import { Version } from './version.mjs';
+import * as log from './logging.mjs';
+import { ParallelProgram, runInParallel } from './run-in-parallel.mjs';
+import { spawn } from './exec.mjs';
+import { fromTag, isVersionTag } from './version.mjs';
 
 export type WorkspacePackage = {
   name: string;
@@ -267,14 +267,14 @@ function expandWorkspaces(packageJsonPath: string) {
     for (const workspace of packageJson.workspaces.packages ?? packageJson.workspaces) {
       // Find each workspace that have a dependency on garn.
       // Always use '/' even on windows, because node-glob wants it that way. Read more here: https://github.com/isaacs/node-glob?tab=readme-ov-file#windows
-      const expanded = glob.sync([workspace, 'buildsystem', 'tsconfig.json'].join('/'), {
+      const expanded = glob.sync([workspace, 'buildsystem', 'index.mts'].join('/'), {
         cwd: projectRoot,
       });
 
       workspaces.push(
         ...expanded
           .map(e => {
-            // Goes from excite-packages/packages/core/buildsystem/tsconfig.json to excite-packages/packages/core
+            // Goes from packages/core/buildsystem/index.mts to packages/core.
             const relativeWorkspacePath = path.join(e, '..', '..'); // Ugly af
             return {
               name: path.basename(relativeWorkspacePath),
@@ -282,7 +282,7 @@ function expandWorkspaces(packageJsonPath: string) {
               garnPath: path.join(projectRoot, 'node_modules', '.bin', garnExecutable()),
             };
           })
-          .filter(entry => fs.existsSync(path.join(entry.workspacePath, 'buildsystem', 'tsconfig.json'))),
+          .filter(entry => fs.existsSync(path.join(entry.workspacePath, 'buildsystem', 'index.mts'))),
       );
     }
 

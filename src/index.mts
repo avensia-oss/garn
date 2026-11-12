@@ -1,17 +1,17 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { spawn } from './exec';
-import * as stringSimilarity from 'string-similarity';
+import { spawn } from './exec.mjs';
+import stringSimilarity from 'string-similarity';
 
-import * as cliArgs from './cli-args';
-import * as variables from './variables';
-import * as log from './logging';
-import * as prompt from './prompt';
-import defaultTask from './default-task';
-import * as workspace from './workspace';
-import * as chalk from 'chalk';
-import { WorkspacePackage } from './workspace';
+import * as cliArgs from './cli-args.mjs';
+import * as variables from './variables.mjs';
+import * as log from './logging.mjs';
+import * as prompt from './prompt.mjs';
+import defaultTask from './default-task.mjs';
+import * as workspace from './workspace.mjs';
+import chalk from 'chalk';
+import { WorkspacePackage } from './workspace.mjs';
 
 type Workpace = typeof workspace;
 type ExternalWorkspace = Omit<Workpace, 'runGarnPlugin' | 'getGarnPluginMetaData'>;
@@ -23,20 +23,20 @@ export { variables };
 export { exportedWorkspace as workspaces };
 export { prompt };
 export { cliArgs };
-export { isInPath } from './exec';
-export * as version from './version';
-export * as release from './release';
-export * as docker from './docker';
-export * as exec from './exec';
-export * as dotnet from './dotnet';
-export * as yarn from './yarn';
-export * as node from './node';
-export * as pnpm from './pnpm';
-export * as git from './git';
-export * as github from './github';
-export * as changelog from './change-log';
-export * as typescript from './typescript';
-export * from './github-access';
+export { isInPath } from './exec.mjs';
+export * as version from './version.mjs';
+export * as release from './release.mjs';
+export * as docker from './docker.mjs';
+export * as exec from './exec.mjs';
+export * as dotnet from './dotnet.mjs';
+export * as yarn from './yarn.mjs';
+export * as node from './node.mjs';
+export * as pnpm from './pnpm.mjs';
+export * as git from './git.mjs';
+export * as github from './github.mjs';
+export * as changelog from './change-log.mjs';
+export * as typescript from './typescript.mjs';
+export * from './github-access.mjs';
 
 const flags = cliArgs.flags;
 export const projectPath = path.join(cliArgs.buildsystemPath, '..');
@@ -624,7 +624,6 @@ export async function writeMetaData(buildCachePath: string) {
   for (const flag of Object.keys(flags)) {
     cliFlags['--' + flags[flag].name] = flags[flag].possibleValues ?? [];
   }
-  cliFlags['--compile-buildsystem'] = [];
   const pluginsMeta: { [name: string]: PluginMetaData } = {};
   for (const pluginName of Object.keys(plugins)) {
     const meta = await plugins[pluginName].getGarnPluginMetaData();
@@ -653,14 +652,14 @@ export async function writeMetaData(buildCachePath: string) {
     flags: cliFlags,
     plugins: pluginsMeta,
   };
-  fs.writeFile(path.join(buildCachePath, garnMetaFile), JSON.stringify(json, null, 2), () => null);
+  await fs.promises.writeFile(path.join(buildCachePath, garnMetaFile), JSON.stringify(json, null, 2));
 }
 
 export async function getMetaData(pkg: WorkspacePackage, isRetry = false): Promise<MetaData> {
   const garnPath = pkg.garnPath;
   const garnMetaFilePath = path.join(pkg.workspacePath, 'buildsystem', '.buildcache', garnMetaFile);
 
-  if (fs.existsSync(garnMetaFilePath) && (isRetry || !('compile-buildsystem' in cliArgs.argv))) {
+  if (fs.existsSync(garnMetaFilePath)) {
     try {
       return JSON.parse(fs.readFileSync(garnMetaFilePath).toString()) as MetaData;
     } catch (e) {
@@ -670,9 +669,6 @@ export async function getMetaData(pkg: WorkspacePackage, isRetry = false): Promi
   }
   if (!isRetry) {
     const args: string[] = [];
-    if ('compile-buildsystem' in cliArgs.argv) {
-      args.push('--compile-buildsystem');
-    }
 
     await spawn(garnPath, args, { stdio: 'pipe', cwd: pkg.workspacePath });
     return getMetaData(pkg, true);

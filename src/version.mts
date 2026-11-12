@@ -1,7 +1,7 @@
-import * as cliArgs from './cli-args';
-import * as git from './git';
-import * as workspace from './workspace';
-import * as log from './logging';
+import * as cliArgs from './cli-args.mjs';
+import * as git from './git.mjs';
+import * as workspace from './workspace.mjs';
+import * as log from './logging.mjs';
 
 export type Version = {
   /** Three digit version, separated by dot. For example: 1.2.3 */

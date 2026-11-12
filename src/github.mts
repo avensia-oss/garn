@@ -1,8 +1,8 @@
 import { Octokit } from '@octokit/rest';
-import { changelog, git, log } from '.';
+import { changelog, git, log } from './index.mjs';
 import * as os from 'os';
-import { GithubAccess } from './github-access';
-import * as chalk from 'chalk';
+import { GithubAccess } from './github-access.mjs';
+import chalk from 'chalk';
 
 export type LogLevel = 'debug' | 'warn' | 'info' | 'error';
 

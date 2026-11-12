@@ -1,13 +1,13 @@
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as inquirer from 'inquirer';
-import * as cliArgs from './cli-args';
-import * as log from './logging';
+import inquirer from 'inquirer';
+import * as cliArgs from './cli-args.mjs';
+import * as log from './logging.mjs';
 
 export let envVariablesFile = path.join(cliArgs.buildsystemPath, '..', '.env');
 
-const packageJson = require(path.join(cliArgs.buildsystemPath, '..', 'package.json'));
+const packageJson = JSON.parse(fs.readFileSync(path.join(cliArgs.buildsystemPath, '..', 'package.json'), 'utf8'));
 let explicitPathFromPackageJson: string | undefined = undefined;
 if (packageJson.envFile) {
   const envFilePath = path.normalize(path.join(cliArgs.buildsystemPath, '..', packageJson.envFile));

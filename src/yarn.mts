@@ -2,10 +2,10 @@ import * as os from 'os';
 import * as childProcess from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-import { projectPath } from './index';
-import * as exec from './exec';
-import { currentVersion } from './version';
-import { runNode } from './node';
+import { projectPath } from './index.mjs';
+import * as exec from './exec.mjs';
+import { currentVersion } from './version.mjs';
+import { runNode } from './node.mjs';
 
 export async function runScript(script: string, args: string[] = []) {
   return runYarn(['run', script, ...args]);

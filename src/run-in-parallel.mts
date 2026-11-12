@@ -1,10 +1,10 @@
 import * as path from 'path';
 import { spawn, StdioOptions } from 'child_process';
-import * as through from 'through';
+import through from 'through';
 import * as stream from 'stream';
 
-import * as log from './logging';
-import * as cliArgs from './cli-args';
+import * as log from './logging.mjs';
+import * as cliArgs from './cli-args.mjs';
 
 export type ParallelProgram = {
   program: string;

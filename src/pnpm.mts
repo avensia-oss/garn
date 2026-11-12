@@ -1,8 +1,8 @@
 import * as os from 'os';
 import * as childProcess from 'child_process';
 import * as path from 'path';
-import { projectPath } from './index';
-import * as exec from './exec';
+import { projectPath } from './index.mjs';
+import * as exec from './exec.mjs';
 
 export async function runScript(script: string, args: string[] = []) {
   return runPnpm(['run', script, ...args]);

@@ -3,19 +3,19 @@
   "compileOnSave": false,
   "compilerOptions": {
     "outDir": "dist",
+    "rootDir": "src",
     "declaration": true,
     "jsx": "react",
-    "target": "es6",
-    "module": "commonjs",
+    "target": "es2024",
+    "module": "node20",
+    "esModuleInterop": true,
     "strict": true,
     "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "node",
-    "downlevelIteration": true,
-    "lib": ["es2018", "dom", "dom.iterable"],
+    "lib": ["es2024", "dom", "dom.iterable"],
     "skipLibCheck": true,
     "sourceMap": true,
     "noEmit": true,
-    "checkJs": true,
+    "checkJs": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"]
+  "include": ["src/**/*.mts"]
 }

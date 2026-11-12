@@ -1,8 +1,8 @@
 import * as path from 'path';
-import { projectPath } from './index';
-import { spawn } from './exec';
-import { flags } from './cli-args';
-import { currentVersion } from './version';
+import { projectPath } from './index.mjs';
+import { spawn } from './exec.mjs';
+import { flags } from './cli-args.mjs';
+import { currentVersion } from './version.mjs';
 
 export type PackageDetails = {
   name: string;
